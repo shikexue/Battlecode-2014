@@ -47,11 +47,10 @@ public class RobotPlayer{
 	}
 
 	private static void runSoldier(ArrayList<MapLocation> path) throws GameActionException {
-		rc.setIndicatorString(0, "successfully generated path");
+		//rc.setIndicatorString(0, "successfully generated path");
 		followPath(path);
-		rc.yield();
 	}
-	
+	//Generates a path to a given destination and returns a list of locations that make up the path
 	private static ArrayList<MapLocation> generateBugPath(MapLocation destination){
 		rc.setIndicatorString(0, "beginning to generate path");
 		placeOnPath = 0;
@@ -96,11 +95,11 @@ public class RobotPlayer{
 				pastPos.add(pos);
 			}
 			rc.setIndicatorString(2, ""+pastPos.subList(Math.max(0, pastPos.size()-15), pastPos.size()));
-			rc.yield();
+			//rc.yield();
 		}
 		return pastPos;
 	}
-	
+	//When moving around an obstacle, runs this
 	private static Direction bug(MapLocation pos, Direction dir, int[] directionalLooks) {
 		//Try different directions, in order
 		rc.setIndicatorString(1, "bugging");
@@ -114,7 +113,7 @@ public class RobotPlayer{
 		}
 		return allDirections[(forwardInt+4)%8];
 	}	
-
+	//Checks if a given bit of terrain is passable
 	private static boolean canPathThrough(MapLocation desiredPos) {
 		TerrainTile toCheck = rc.senseTerrainTile(desiredPos);
 		if(toCheck.equals(TerrainTile.OFF_MAP)||toCheck.equals(TerrainTile.VOID)){
@@ -123,6 +122,7 @@ public class RobotPlayer{
 		return true;
 	}
 
+	//Attempts to path (not move) in a straight line toward the target
 	private static  Direction simplePath(MapLocation pos, Direction desiredDir) {
 		rc.setIndicatorString(2, "simplePathing");
 		if(canPathThrough(pos.add(desiredDir))){
@@ -130,7 +130,8 @@ public class RobotPlayer{
 		}
 		return null;
 	}
-
+	
+	//Given a list of continuous locations, visits each in turn. 
 	private static void followPath(ArrayList<MapLocation> pathToFollow) throws GameActionException{
 		if(placeOnPath < pathToFollow.size()-1){
 			simpleMove(rc.getLocation().directionTo(pathToFollow.get(placeOnPath)));
@@ -140,7 +141,7 @@ public class RobotPlayer{
 		}
 	}
 	
-	
+	//Moves toward target 
 	private static void simpleMove(Direction desiredDir) throws GameActionException {
 		for(int directionalOffset:tryForward){
 			int forwardInt = desiredDir.ordinal();
@@ -151,27 +152,12 @@ public class RobotPlayer{
 		}
 	}
 
-	private static MapLocation mladd(MapLocation m1, MapLocation m2){
-		return new MapLocation(m1.x+m2.x,m1.y+m2.y);
-	}
-	
-	private static MapLocation mldivide(MapLocation bigM, int divisor){
-		return new MapLocation(bigM.x/divisor, bigM.y/divisor);
-	}
-
-	private static int locToInt(MapLocation m){
-		return (m.x*100 + m.y);
-	}
-	
-	private static MapLocation intToLoc(int i){
-		return new MapLocation(i/100,i%100);
-	}
 	
 
 	private static void runHeadquarters() throws GameActionException {
-		Direction spawnDir = Direction.NORTH;
+		Direction spawnDir = Direction.SOUTH_EAST;
 		if(rc.isActive()&&rc.canMove(spawnDir)&&rc.senseRobotCount()<GameConstants.MAX_ROBOTS){
-			rc.spawn(Direction.NORTH);
+			rc.spawn(spawnDir);
 		}
 		
 		int editingChannel = (Clock.getRoundNum()%2);
