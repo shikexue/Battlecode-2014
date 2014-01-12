@@ -1,6 +1,7 @@
 package herdingPlayer;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 
 import battlecode.common.Clock;
@@ -67,7 +68,7 @@ public class BugMove {
 						//intentional fallthrough
 					}
 				case BUGGING:
-					int before = Clock.getBytecodeNum();
+					//int before = Clock.getBytecodeNum();
 					Direction moveDir = bug(pos, dir, whileBugging);
 					//rc.setIndicatorString(2, ""+(Clock.getBytecodeNum()-before));
 					//rc.setIndicatorString(2, "In bugging: "+moveDir);
@@ -179,5 +180,18 @@ public class BugMove {
 					//rc.yield();
 				}
 			}
+		}
+		
+		public static boolean closeEnoughForTask(Task task, MapLocation destination, MapLocation currentPos){
+			HashMap<Task, Integer> taskLeeway = new HashMap<Task, Integer>();
+			taskLeeway.put(Task.HERDING, 0);
+			taskLeeway.put(Task.ATTACKING, 10); //squared
+			taskLeeway.put(Task.DEFENDING, 1);
+			taskLeeway.put(Task.PASTRMAKING, 0);
+			taskLeeway.put(Task.TOWERMAKING,0);
+			if(taskLeeway.get(task) <= destination.distanceSquaredTo(currentPos)){
+				return true;
+			}
+			return false;
 		}
 }
