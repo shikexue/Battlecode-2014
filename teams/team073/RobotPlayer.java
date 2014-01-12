@@ -23,6 +23,10 @@ public class RobotPlayer{
 		ArrayList<MapLocation> path = new ArrayList<MapLocation>();
 		if(rc.getType()==RobotType.SOLDIER){
 			path = BugMove.generateBugPath(rc.senseEnemyHQLocation(), rc.getLocation(), rc);
+			for(int i=0; i < rc.getRobot().getID()/100-1; i++){
+				path = BugMove.simplefyPath(path);
+			}
+			path = BugMove.mergePath(path);
 		}
 		while(true){
 			try{
@@ -48,7 +52,7 @@ public class RobotPlayer{
 
 	private static void runHeadquarters() throws GameActionException {
 		Direction spawnDir = Direction.SOUTH_EAST;
-		if(rc.isActive()&&rc.canMove(spawnDir)&&rc.senseRobotCount()<1/*GameConstants.MAX_ROBOTS*/){
+		if(rc.isActive()&&rc.canMove(spawnDir)&&rc.senseRobotCount()<GameConstants.MAX_ROBOTS){
 			rc.spawn(spawnDir);
 		}
 		
