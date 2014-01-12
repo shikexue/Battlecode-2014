@@ -16,21 +16,13 @@ public class RobotPlayer{
 	public static RobotController rc;
 	static Direction allDirections[] = Direction.values();
 	static Random randall = new Random();
-	static int tryRight[] = new int[]{-1,-2,3,0,1,2,3,};
-	static int tryLeft[] = new int[]{1,2,3,0,-1,-2,-3};
-	static int tryForward[] = new int[]{0,1,-1,2,-2};
-	static int placeOnPath;
-	
-	public static enum STATE {
-		BUGGING, CLEAR
-	}
 	
 	public static void run(RobotController rcin){
 		rc = rcin;
 		randall.setSeed(rc.getRobot().getID());
 		ArrayList<MapLocation> path = new ArrayList<MapLocation>();
 		if(rc.getType()==RobotType.SOLDIER){
-			path = generateBugPath(rc.senseEnemyHQLocation());
+			path = BugMove.generateBugPath(rc.senseEnemyHQLocation(), rc.getLocation(), rc);
 		}
 		while(true){
 			try{
@@ -48,115 +40,15 @@ public class RobotPlayer{
 
 	private static void runSoldier(ArrayList<MapLocation> path) throws GameActionException {
 		//rc.setIndicatorString(0, "successfully generated path");
-		followPath(path);
-	}
-	//Generates a path to a given destination and returns a list of locations that make up the path
-	private static ArrayList<MapLocation> generateBugPath(MapLocation destination){
-		rc.setIndicatorString(0, "beginning to generate path");
-		placeOnPath = 0;
-		Direction dir = null;
-		//ArrayList<Direction> path = new ArrayList<Direction>();
-		ArrayList<MapLocation> pastPos = new ArrayList<MapLocation>();
-		MapLocation pos = rc.getLocation();
-		pastPos.add(rc.getLocation());
-		STATE state = STATE.CLEAR;
-		MapLocation startBugLoc = null;
-		while(!pos.equals(destination)){
-			//rc.setIndicatorString(0, ""+path);
-			//rc.setIndicatorString(2, ""+state);
-			Direction desiredDir = pos.directionTo(destination);
-			if(state==STATE.BUGGING){ //If we are closer than we started, and are unblocked, we are clear
-				if(pos.distanceSquaredTo(destination) < startBugLoc.distanceSquaredTo(destination)&&canPathThrough(pos.add(desiredDir))){
-					state = STATE.CLEAR;
-					rc.setIndicatorString(1, "passed obstacle");
-				}
-			}
-			switch(state){
-			case CLEAR:
-				Direction newDir = simplePath(pos, desiredDir);	
-				if(newDir != null){
-					dir = newDir;
-					pos = pos.add(newDir);
-					pastPos.add(pos);
-					break;
-				} else {
-					state = STATE.BUGGING;
-					startBugLoc = pos;
-					newDir = bug(pos, dir, tryRight);
-					dir = newDir;
-					pos = pos.add(newDir);
-					pastPos.add(pos);
-					//intentional fallthrough
-				}
-			case BUGGING:
-				Direction moveDir = bug(pos, dir, tryLeft);
-				dir = moveDir;
-				pos = pos.add(moveDir);
-				pastPos.add(pos);
-			}
-			rc.setIndicatorString(2, ""+pastPos.subList(Math.max(0, pastPos.size()-15), pastPos.size()));
-			//rc.yield();
-		}
-		return pastPos;
-	}
-	//When moving around an obstacle, runs this
-	private static Direction bug(MapLocation pos, Direction dir, int[] directionalLooks) {
-		//Try different directions, in order
-		rc.setIndicatorString(1, "bugging");
-		int forwardInt = dir.ordinal();
-		for(int directionalOffset:directionalLooks){
-			Direction tryDir = allDirections[(forwardInt + directionalOffset+8)%8];
-			MapLocation tryPos = pos.add(tryDir);
-			if(canPathThrough(tryPos)){
-				return tryDir;
-			}
-		}
-		return allDirections[(forwardInt+4)%8];
-	}	
-	//Checks if a given bit of terrain is passable
-	private static boolean canPathThrough(MapLocation desiredPos) {
-		TerrainTile toCheck = rc.senseTerrainTile(desiredPos);
-		if(toCheck.equals(TerrainTile.OFF_MAP)||toCheck.equals(TerrainTile.VOID)){
-			return false;
-		}
-		return true;
-	}
-
-	//Attempts to path (not move) in a straight line toward the target
-	private static  Direction simplePath(MapLocation pos, Direction desiredDir) {
-		rc.setIndicatorString(2, "simplePathing");
-		if(canPathThrough(pos.add(desiredDir))){
-			return desiredDir;
-		}
-		return null;
+		BugMove.followPath(path);
+		//bugMove(rc.senseEnemyHQLocation());
 	}
 	
-	//Given a list of continuous locations, visits each in turn. 
-	private static void followPath(ArrayList<MapLocation> pathToFollow) throws GameActionException{
-		if(placeOnPath < pathToFollow.size()-1){
-			simpleMove(rc.getLocation().directionTo(pathToFollow.get(placeOnPath)));
-			if(rc.getLocation().equals(pathToFollow.get(placeOnPath))){
-				placeOnPath++;
-			}
-		}
-	}
-	
-	//Moves toward target 
-	private static void simpleMove(Direction desiredDir) throws GameActionException {
-		for(int directionalOffset:tryForward){
-			int forwardInt = desiredDir.ordinal();
-			Direction trialDir = allDirections[(forwardInt+directionalOffset+8)%8];
-			if(rc.canMove(trialDir)&&rc.isActive()){
-				rc.move(trialDir);
-			}
-		}
-	}
-
 	
 
 	private static void runHeadquarters() throws GameActionException {
 		Direction spawnDir = Direction.SOUTH_EAST;
-		if(rc.isActive()&&rc.canMove(spawnDir)&&rc.senseRobotCount()<GameConstants.MAX_ROBOTS){
+		if(rc.isActive()&&rc.canMove(spawnDir)&&rc.senseRobotCount()<1/*GameConstants.MAX_ROBOTS*/){
 			rc.spawn(spawnDir);
 		}
 		
