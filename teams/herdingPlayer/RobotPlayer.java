@@ -3,9 +3,7 @@ package herdingPlayer;
 import battlecode.common.*;
 
 import java.util.*;
-
 import herdingPlayer.BugMove;
-import herdingPlayer.RobotPlayer.Task;
 import herdingPlayer.VectorFunctions;
 
 public class RobotPlayer {
@@ -20,23 +18,27 @@ public class RobotPlayer {
 
 
 	// defining channels
-	static int numPastrChan = 0;
+	static int pastrBeingMadeChan = 0;
 	static int makePastrChan = 1; //channel will have -1 if no pastures ordered
-	static int makePastrLocChan[] = new int[]{2,3,4,5};
-
+	static int makePastrLocChan[] = new int[]{23,4,5};
+   
 	/*
 	 * Calls the run functions of the different types of robot
 	 */
 	public static void run(RobotController rcIn) {
 		try{
 			rc = rcIn;
-			rc.broadcast(makePastrChan, -1);
-
-
-			ArrayList<MapLocation> path = new ArrayList<MapLocation>();
-			Task task = Task.ATTACKING; 
-			MapLocation goal = rc.senseEnemyHQLocation();
-
+			Task task = Task.ATTACKING; // default task
+			MapLocation goal = rc.senseEnemyHQLocation(); // default goal
+			ArrayList<MapLocation> path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
+			
+			
+			// do this once to initialize channels at beginning of game
+			if (rc.getType()==RobotType.HQ){
+				rc.broadcast(makePastrChan, -1);
+			}
+			
+			// splitting up behavior based on robot type
 			while(true){
 				if(rc.getType()==RobotType.HQ){
 					runHQ();
@@ -56,9 +58,13 @@ public class RobotPlayer {
 	private static void runHQ() throws GameActionException 
 	{
 		tryToSpawn();
+		rc.setIndicatorString(arg0, arg1)
+        rc.setIndicatorString(0, "" + rc.readBroadcast(makePastrChan));
+        rc.setIndicatorString(1, "" + rc.readBroadcast(pastrBeingMadeChan));
 
-		// if there are no pastures, send order to make one
-		if (rc.readBroadcast(numPastrChan) == 0){
+		// if there are no pastures and none are being made, and none have been ordered, send order to make one
+        if ((rc.readBroadcast(pastrBeingMadeChan) == 0) && (rc.sensePastrLocations(rc.getTeam()).length == 0) && (rc.readBroadcast(makePastrChan) == -1)){
+			rc.setIndicatorString(3, "calling make PAstr");
 			sendMakeNearbyPastrCommand(5);
 		}
 
@@ -89,12 +95,16 @@ public class RobotPlayer {
 		//TODO: Select group of cows to herd
 		//TODO: herd cows towards pastr
 
-		// if there is a command sent out to make a pastr, make one 
+		rc.setIndicatorString(2, "" + task);
+		
+		//if there is a command sent out to make a pastr, make one 
 		int lastPastrNum = rc.readBroadcast(makePastrChan);
-		if (lastPastrNum>-1){
+		if (lastPastrNum > -1){
 			goal = VectorFunctions.intToLoc(rc.readBroadcast(makePastrLocChan[lastPastrNum]));
 			path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
 			task = Task.PASTRMAKING;
+			
+			rc.broadcast(pastrBeingMadeChan, rc.readBroadcast(pastrBeingMadeChan)+1);
 
 			//decrement makePastrChan so other robots don't try to make the same pastr
 			rc.broadcast(makePastrChan, lastPastrNum-1);
@@ -120,7 +130,8 @@ public class RobotPlayer {
 		// if not already at goal, move towards goal
 		// TODO: allow interruptions
 		else{
-			
+			rc.setIndicatorString(1, "followingPath");
+			BugMove.followPath(path);
 		}
 
 
@@ -139,7 +150,9 @@ public class RobotPlayer {
 		//TODO: try a few times to make sure is a field?
 		while(rc.senseTerrainTile(pastrLoc).ordinal() > 1){ //0 NORMAL, 1 ROAD, 2 VOID, 3 OFF_MAP
 			pastrLoc = new MapLocation(randall.nextInt(pastrDistance),randall.nextInt(pastrDistance));
+			rc.setIndicatorString(3, "finding pastr location");
 		}
+		 rc.setIndicatorString(3, "pastr location found");
 
 		//broadcast that a channel should be made, and in desired position
 		// make sure that position is broadcast before soldiers are told to read it
