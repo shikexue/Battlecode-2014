@@ -86,6 +86,66 @@ public class BugMove {
 		pastPos.add(destination);
 		return pastPos;
 	}
+	public static ArrayList<MapLocation> generateBugPath(MapLocation destination, MapLocation start, RobotController rcin){
+		rc = rcin;
+		//rc.setIndicatorString(0, "beginning to generate path");
+		placeOnPath = 0;
+		Direction dir = start.directionTo(destination);
+		//ArrayList<Direction> path = new ArrayList<Direction>();
+		ArrayList<MapLocation> pastPos = new ArrayList<MapLocation>();
+		MapLocation pos = start;
+		pastPos.add(start);
+		STATE state = STATE.CLEAR;
+		MapLocation startBugLoc = null;
+		while(!pos.equals(destination)){
+			//rc.setIndicatorString(0, ""+path);
+			//rc.setIndicatorString(2, ""+state);
+			Direction desiredDir = pos.directionTo(destination);
+			if(state==STATE.BUGGING){ //If we are closer than we started, and are unblocked, we are clear
+				if(pos.distanceSquaredTo(destination) < startBugLoc.distanceSquaredTo(destination)&&canPathThrough(pos.add(desiredDir))){
+					state = STATE.CLEAR;
+					//rc.setIndicatorString(1, "passed obstacle");
+				}
+			}
+			switch(state){
+			case CLEAR:
+				Direction newDir = simplePath(pos, desiredDir);	
+				if(newDir != null){
+					dir = newDir;
+					pos = pos.add(newDir);
+					pastPos.add(pos);
+					break;
+				} else {
+					state = STATE.BUGGING;
+					startBugLoc = pos;
+					newDir = bug(pos, dir, enterBugging);
+					//rc.setIndicatorString(2, ""+newDir);
+					dir = newDir;
+					pos = pos.add(newDir);
+					pastPos.add(pos);
+					//rc.setIndicatorString(0, ""+pastPos.subList(Math.max(0, pastPos.size()-30), pastPos.size()));
+					//rc.setIndicatorString(1, ""+state);
+					//rc.yield();
+					//intentional fallthrough
+				}
+			case BUGGING:
+				//int before = Clock.getBytecodeNum();
+				Direction moveDir = bug(pos, dir, whileBugging);
+				//rc.setIndicatorString(2, ""+(Clock.getBytecodeNum()-before));
+				//rc.setIndicatorString(2, "In bugging: "+moveDir);
+				dir = moveDir;
+				pos = pos.add(moveDir);
+				pastPos.add(pos);
+			}
+			//rc.setIndicatorString(0, ""+pastPos.subList(Math.max(0, pastPos.size()-30), pastPos.size()));
+			//rc.setIndicatorString(1, ""+state);
+			//rc.setIndicatorString(2, ""+(Clock.getBytecodeNum()-before));
+			//rc.yield();
+		}
+		//add goal to end
+		pastPos.add(destination);
+		return pastPos;
+	}
 	//When moving around an obstacle, runs this
 	private static Direction bug(MapLocation pos, Direction dir, int[] directionalLooks, MapLocation centerOfRange, int rangeSquared) {
 		//Try different directions, in order
@@ -94,6 +154,18 @@ public class BugMove {
 			Direction tryDir = allDirections[(forwardInt + directionalOffset+8)%8];
 			MapLocation tryPos = pos.add(tryDir);
 			if(canPathThrough(tryPos, centerOfRange, rangeSquared)){
+				return tryDir;
+			}
+		}
+		return allDirections[(forwardInt+4)%8];
+	}	
+	private static Direction bug(MapLocation pos, Direction dir, int[] directionalLooks) {
+		//Try different directions, in order
+		int forwardInt = dir.ordinal();
+		for(int directionalOffset:directionalLooks){
+			Direction tryDir = allDirections[(forwardInt + directionalOffset+8)%8];
+			MapLocation tryPos = pos.add(tryDir);
+			if(canPathThrough(tryPos)){
 				return tryDir;
 			}
 		}
@@ -111,6 +183,16 @@ public class BugMove {
 		}
 		return true;
 	}	
+	private static boolean canPathThrough(MapLocation desiredPos) {
+		TerrainTile toCheck = rc.senseTerrainTile(desiredPos);
+
+		if(toCheck.equals(TerrainTile.OFF_MAP)||
+				toCheck.equals(TerrainTile.VOID)||
+				rc.senseHQLocation().equals(desiredPos)){
+			return false;
+		}
+		return true;
+	}	
 
 	//Attempts to path (not move) in a straight line toward the target
 	private static Direction simplePath(MapLocation pos, Direction desiredDir, MapLocation centerOfRange, int rangeSquared) {
@@ -120,6 +202,18 @@ public class BugMove {
 		for(int directionalOffset:tryRestrainedForward){
 			Direction trialDir = allDirections[(forwardInt+directionalOffset+8)%8];
 			if(canPathThrough(pos.add(trialDir), centerOfRange, rangeSquared)){
+				return trialDir;
+			}
+		}
+		return null;
+	}
+	private static Direction simplePath(MapLocation pos, Direction desiredDir) {
+		//rc.setIndicatorString(2, "simplePathing");
+		int forwardInt = desiredDir.ordinal();
+		//rc.setIndicatorString(2, "simple pathing. Desired Dir is " + desiredDir);
+		for(int directionalOffset:tryRestrainedForward){
+			Direction trialDir = allDirections[(forwardInt+directionalOffset+8)%8];
+			if(canPathThrough(pos.add(trialDir))){
 				return trialDir;
 			}
 		}
