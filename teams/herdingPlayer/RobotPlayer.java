@@ -25,9 +25,7 @@ public class RobotPlayer {
 	 */
 	public static void run(RobotController rcIn) {
 		try{
-			if (Clock.getRoundNum() < 100){
-			System.out.println("Calling new run and value is" + rcIn.readBroadcast(makePastrChan));
-			}
+
 			rc = rcIn;
 			Constants.Task task = Constants.Task.ATTACKING; // default task
 			MapLocation goal = rc.senseEnemyHQLocation(); // default goal
@@ -39,28 +37,19 @@ public class RobotPlayer {
 			if (rc.getType()==RobotType.HQ){
 				rc.broadcast(makePastrChan, -1);
 				rc.yield();
-				if (Clock.getRoundNum() < 100){
-				System.out.println("makePastr initialized to" + rc.readBroadcast(makePastrChan));
-				}
 				tryToSpawn();
 			}
 			// if pastr has been made, decrement appropriate channel so hq doesn't double-count
 			else if (rc.getType()==RobotType.PASTR){
-				if (Clock.getRoundNum() < 100){
-				System.out.println("pastr made" + rc.readBroadcast(makePastrChan));
-				}
 				rc.broadcast(pastrBeingMadeChan, rc.readBroadcast(pastrBeingMadeChan)-1);
 			}
 			// splitting up behavior based on robot type
 			while(true){
 				if(rc.getType()==RobotType.HQ){
-					if (Clock.getRoundNum() < 100){
-					System.out.println("running HQ" + rc.readBroadcast(makePastrChan));
-					}
+
 					runHQ();
 				}else if(rc.getType()==RobotType.SOLDIER){
 					// to store data like task, goal, path between rounds, have runFoo return them for soldiers, pastrs, towers
-					//System.out.println("running soldier" + rc.readBroadcast(makePastrChan));
 					myData = runSoldier(myData.getTask(), myData.getPath(), myData.getGoal());
 				}
 
@@ -86,16 +75,10 @@ public class RobotPlayer {
 		int pastrAlreadyMade = rc.sensePastrLocations(rc.getTeam()).length; 
 		int pastrUnansweredCommands = rc.readBroadcast(makePastrChan) + 1; // no commands sent when -1
 		if(pastrBeingMade + pastrAlreadyMade + pastrUnansweredCommands < 2 ){
-			if (Clock.getRoundNum() < 100){
-			System.out.println("trying to make pastr and value is" + rc.readBroadcast(makePastrChan));
-			System.out.println("**Calling makeNearbyPastr");
-			}
 			sendMakeNearbyPastrCommand(5);
 			rc.yield();
 		}
-		if (Clock.getRoundNum() < 100){
-		System.out.println("trying to spawn and value is" + rc.readBroadcast(makePastrChan));
-		}
+
 		tryToSpawn();
 
 	}
@@ -130,9 +113,7 @@ public class RobotPlayer {
 		//if there is a command sent out to make a pastr, make one 
 		int lastPastrNum = rc.readBroadcast(makePastrChan);
 		if (lastPastrNum > -1  && task != Constants.Task.PASTRMAKING){
-			if (Clock.getRoundNum() < 100){
-			System.out.println("a robot is using makePastr at " + lastPastrNum);
-			}
+
 			rc.setIndicatorString(0,"makePastrChan is " + lastPastrNum);
 			goal = VectorFunctions.intToLoc(rc.readBroadcast(makePastrLocChan[lastPastrNum]));
 			path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
@@ -142,9 +123,7 @@ public class RobotPlayer {
 
 			//decrement makePastrChan so other robots don't try to make the same pastr
 			rc.broadcast(makePastrChan, lastPastrNum-1);
-			if (Clock.getRoundNum() < 100){
-			System.out.println("robot decremented makePastrChan to " + (lastPastrNum-1));
-			}
+
 		}
 
 
@@ -189,7 +168,6 @@ public class RobotPlayer {
 	 * @Location: place where PASTR should be made
 	 */
 	private static void sendMakeNearbyPastrCommand(int pastrDistance) throws GameActionException{
-		System.out.println("*** inside send pastr command");
 		int currentMakeCount = rc.readBroadcast(makePastrChan);
 		int hqX = rc.senseHQLocation().x;
 		int hqY = rc.senseHQLocation().y;
@@ -204,13 +182,8 @@ public class RobotPlayer {
 
 		//broadcast that a channel should be made, and in desired position
 		// make sure that position is broadcast before soldiers are tolstr and value is0str and value is0d to read it
-		System.out.println("******* makePastr currently At" + currentMakeCount);
 		rc.broadcast(makePastrLocChan[currentMakeCount + 1], VectorFunctions.locToInt(pastrLoc));
-		System.out.println("************posting position to Channel" + makePastrLocChan[currentMakeCount + 1]);
-
 		rc.broadcast(makePastrChan, currentMakeCount + 1);
-		System.out.println("******* makePastr incremented to" + rc.readBroadcast(makePastrChan));
-        System.out.println("***************goal is at" + pastrLoc.x + ", " + pastrLoc.y);
 		
 	}
 	
@@ -220,9 +193,7 @@ public class RobotPlayer {
 		//broadcast that a channel should be made, and in desired position
 		// make sure that position is broadcast before soldiers are told to read it
 		rc.broadcast(makePastrLocChan[currentMakeCount + 1 ], VectorFunctions.locToInt(pastrLocation));
-		System.out.println("*******Printing location to " + makePastrLocChan[currentMakeCount+1]);
 		rc.broadcast(makePastrChan, currentMakeCount + 1);	
-		System.out.println("makePastr has been incremented");
 	}
 	
 	
@@ -236,9 +207,11 @@ public class RobotPlayer {
 	 */
 	private MapLocation[] pickCloseFertilePastr(int distanceDesired, int numPastrs) throws GameActionException{
 		   double[][] cowGrowthArray = rc.senseCowGrowth();
-		   MapLocation[] bestPastrs = new MapLocation[numPastrs];
-		   double[] bestCows[]; //TODO: fix
-		   
+		   MapLocation[] bestPastrs = new MapLocation[numPastrs]; //keeps track of best pastr locaitons, 0 is best
+		   double[] bestCows = new double[numPastrs]; // keeps track of cow growth rate at best pastr locations
+		   double[] tempCows = new double[numPastrs]; // for copying purposes
+		   MapLocation[] tempPastrs = new MapLocation[numPastrs]; // for copying purposes
+		  
 		   int hqX = rc.senseHQLocation().x;
 		   int hqY = rc.senseHQLocation().y;
 		   
@@ -248,9 +221,19 @@ public class RobotPlayer {
 				   // checking that is a valid location
 				   //TODO: check that can read a location when try to path to it?
 				   if (x > 0 && y > 0 && x < cowGrowthArray.length && y < cowGrowthArray[0].length){
-					   if (true){//(cowGrowthArray[x][y] > bestPastrs[0]){ FIX
-						   
+					   // current location is better than all current locations
+					   for (int i = 0; i < bestCows.length; i++){
+						   if (cowGrowthArray[x][y] > bestCows[i]){ 
+							   //copying over 'bestCows' to tempCows with new value in place
+							   System.arraycopy(bestCows, 0, tempCows, 0, i-1);
+							   tempCows[i] = cowGrowthArray[x][y];
+							   System.arraycopy(bestCows, 0, tempCows, i+1, numPastrs);
+							   bestCows = tempCows;
+							   
+							   //adjusting 
+						   }						   
 					   }
+
 				   }
 			   }
 		   }
