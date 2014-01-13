@@ -1,6 +1,7 @@
 package herdingPlayer;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 
 import battlecode.common.Clock;
@@ -24,7 +25,7 @@ public class BugMove {
 		BUGGING, CLEAR
 	}
 	//Generates a path to a given destination and returns a list of locations that make up the path
-		public static ArrayList<MapLocation> generateBugPath(MapLocation destination, MapLocation start, RobotController rcin){
+		public static ArrayList<MapLocation> generateBugPath(MapLocation destination, MapLocation start, RobotController rcin,  MapLocation centerOfRange, int rangeSquared){
 			rc = rcin;
 			//rc.setIndicatorString(0, "beginning to generate path");
 			placeOnPath = 0;
@@ -40,14 +41,14 @@ public class BugMove {
 				//rc.setIndicatorString(2, ""+state);
 				Direction desiredDir = pos.directionTo(destination);
 				if(state==STATE.BUGGING){ //If we are closer than we started, and are unblocked, we are clear
-					if(pos.distanceSquaredTo(destination) < startBugLoc.distanceSquaredTo(destination)&&canPathThrough(pos.add(desiredDir))){
+					if(pos.distanceSquaredTo(destination) < startBugLoc.distanceSquaredTo(destination)&&canPathThrough(pos.add(desiredDir), centerOfRange, rangeSquared)){
 						state = STATE.CLEAR;
 						//rc.setIndicatorString(1, "passed obstacle");
 					}
 				}
 				switch(state){
 				case CLEAR:
-					Direction newDir = simplePath(pos, desiredDir);	
+					Direction newDir = simplePath(pos, desiredDir, centerOfRange, rangeSquared);	
 					if(newDir != null){
 						dir = newDir;
 						pos = pos.add(newDir);
@@ -56,7 +57,7 @@ public class BugMove {
 					} else {
 						state = STATE.BUGGING;
 						startBugLoc = pos;
-						newDir = bug(pos, dir, enterBugging);
+						newDir = bug(pos, dir, enterBugging, centerOfRange, rangeSquared);
 						//rc.setIndicatorString(2, ""+newDir);
 						dir = newDir;
 						pos = pos.add(newDir);
@@ -67,8 +68,8 @@ public class BugMove {
 						//intentional fallthrough
 					}
 				case BUGGING:
-					int before = Clock.getBytecodeNum();
-					Direction moveDir = bug(pos, dir, whileBugging);
+					//int before = Clock.getBytecodeNum();
+					Direction moveDir = bug(pos, dir, whileBugging, centerOfRange, rangeSquared);
 					//rc.setIndicatorString(2, ""+(Clock.getBytecodeNum()-before));
 					//rc.setIndicatorString(2, "In bugging: "+moveDir);
 					dir = moveDir;
@@ -85,45 +86,49 @@ public class BugMove {
 			return pastPos;
 		}
 		//When moving around an obstacle, runs this
-		private static Direction bug(MapLocation pos, Direction dir, int[] directionalLooks) {
+		private static Direction bug(MapLocation pos, Direction dir, int[] directionalLooks, MapLocation centerOfRange, int rangeSquared) {
 			//Try different directions, in order
 			int forwardInt = dir.ordinal();
 			for(int directionalOffset:directionalLooks){
 				Direction tryDir = allDirections[(forwardInt + directionalOffset+8)%8];
 				MapLocation tryPos = pos.add(tryDir);
-				if(canPathThrough(tryPos)){
+				if(canPathThrough(tryPos, centerOfRange, rangeSquared)){
 					return tryDir;
 				}
 			}
 			return allDirections[(forwardInt+4)%8];
 		}	
 		//Checks if a given bit of terrain is passable
-		private static boolean canPathThrough(MapLocation desiredPos) {
+		private static boolean canPathThrough(MapLocation desiredPos, MapLocation centerOfRange, int rangeSquared) {
 			TerrainTile toCheck = rc.senseTerrainTile(desiredPos);
-			if(toCheck.equals(TerrainTile.OFF_MAP)||toCheck.equals(TerrainTile.VOID)||rc.senseHQLocation().equals(desiredPos)){
+			
+			if(toCheck.equals(TerrainTile.OFF_MAP)||
+					toCheck.equals(TerrainTile.VOID)||
+					rc.senseHQLocation().equals(desiredPos)||
+					desiredPos.distanceSquaredTo(centerOfRange)>=rangeSquared){
 				return false;
 			}
 			return true;
 		}
 
 		//Attempts to path (not move) in a straight line toward the target
-		private static Direction simplePath(MapLocation pos, Direction desiredDir) {
+		private static Direction simplePath(MapLocation pos, Direction desiredDir, MapLocation centerOfRange, int rangeSquared) {
 			//rc.setIndicatorString(2, "simplePathing");
 			int forwardInt = desiredDir.ordinal();
 			//rc.setIndicatorString(2, "simple pathing. Desired Dir is " + desiredDir);
 			for(int directionalOffset:tryRestrainedForward){
 				Direction trialDir = allDirections[(forwardInt+directionalOffset+8)%8];
-				if(canPathThrough(pos.add(trialDir))){
+				if(canPathThrough(pos.add(trialDir), centerOfRange, rangeSquared)){
 					return trialDir;
 				}
 			}
 			return null;
 		}
 		//This does mutate original path
-		public static ArrayList<MapLocation> simplefyPath(ArrayList<MapLocation> originalPath){
+		public static ArrayList<MapLocation> simplefyPath(ArrayList<MapLocation> originalPath, MapLocation centerOfRange, int rangeSquared){
 			for(int i = 0; i < originalPath.size()-3; i++){ 
 				Direction newDir = originalPath.get(i+1).directionTo(originalPath.get(i+2));
-				if(canPathThrough(originalPath.get(i).add(newDir))){
+				if(canPathThrough(originalPath.get(i).add(newDir), centerOfRange, rangeSquared)){
 					originalPath.set(i+1, originalPath.get(i).add(newDir));
 				}
 				if(i+3 < originalPath.size()-1){
@@ -134,7 +139,7 @@ public class BugMove {
 			}
 			return originalPath;
 		}
-		
+		//Mutates original path
 		public static ArrayList<MapLocation> mergePath(ArrayList<MapLocation> originalPath){
 			for(int i = 0; i < originalPath.size()-6; i++){
 				MapLocation[] toCheck = new MapLocation[]{originalPath.get(i+3), originalPath.get(i+4), originalPath.get(i+5)};
@@ -181,5 +186,18 @@ public class BugMove {
 					//rc.yield();
 				}
 			}
+		}
+		
+		public static boolean closeEnoughForTask(Constants.Task task, MapLocation destination, MapLocation currentPos){
+			HashMap<Constants.Task, Integer> taskLeeway = new HashMap<Constants.Task, Integer>();
+			taskLeeway.put(Constants.Task.HERDING, 0);
+			taskLeeway.put(Constants.Task.ATTACKING, 10); 
+			taskLeeway.put(Constants.Task.DEFENDING, 1);
+			taskLeeway.put(Constants.Task.PASTRMAKING, 0);
+			taskLeeway.put(Constants.Task.TOWERMAKING,0);
+			if(taskLeeway.get(task) <= destination.distanceSquaredTo(currentPos)){
+				return true;
+			}
+			return false;
 		}
 }

@@ -31,7 +31,7 @@ public class RobotPlayer {
 			rc = rcIn;
 			Constants.Task task = Constants.Task.ATTACKING; // default task
 			MapLocation goal = rc.senseEnemyHQLocation(); // default goal
-			ArrayList<MapLocation> path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
+			ArrayList<MapLocation> path = BugMove.generateBugPath(goal, rc.getLocation(), rc, goal, 100000);
 
 			RobotData myData = new RobotData(task, goal, path);
 
@@ -135,7 +135,7 @@ public class RobotPlayer {
 			}
 			rc.setIndicatorString(0,"makePastrChan is " + lastPastrNum);
 			goal = VectorFunctions.intToLoc(rc.readBroadcast(makePastrLocChan[lastPastrNum]));
-			path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
+			path = BugMove.generateBugPath(goal, rc.getLocation(), rc, goal, 100000);
 			task = Constants.Task.PASTRMAKING;
 
 			rc.broadcast(pastrBeingMadeChan, rc.readBroadcast(pastrBeingMadeChan)+1);
