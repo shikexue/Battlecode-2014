@@ -9,6 +9,7 @@ import battlecode.common.Direction;
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 import battlecode.common.RobotController;
+import battlecode.common.RobotType;
 import battlecode.common.TerrainTile;
 
 public class BugMove {
@@ -169,6 +170,9 @@ public class BugMove {
 			//rc.setIndicatorString(2, "Shooting " + pathToFollow.get(placeOnPath));
 			//rc.setIndicatorString(0, ""+pathToFollow.get(placeOnPath).add(pathToFollow.get(placeOnPath + 1).directionTo(pathToFollow.get(placeOnPath))).distanceSquaredTo(rc.getLocation()));
 				placeOnPath++;
+				if(pathToFollow.get(placeOnPath).x * 100 + pathToFollow.get(placeOnPath).y == rc.readBroadcast(4005)){
+					rc.broadcast(4002, 0);
+				}
 			} else {
 				rc.broadcast(4002, 0);
 			}
