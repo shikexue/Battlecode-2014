@@ -18,6 +18,15 @@ public class VectorFunctions {
 		}
 		return closestLoc;
 	}
+	
+	public static int abs(int x){
+		if (x > 0){
+			return x;
+		}
+		else
+			return -1*x;
+	}
+	
 	public static MapLocation mladd(MapLocation m1, MapLocation m2){
 		return new MapLocation(m1.x+m2.x,m1.y+m2.y);
 	}
