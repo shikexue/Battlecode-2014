@@ -265,18 +265,7 @@ boolean taskSet = false;
 			if (cows > rc.readBroadcast(cowChannel)){
 				rc.broadcast(cowChannel, cows);
 				rc.broadcast(cowLocChannel, nearby.x * 100 + nearby.y);
-				//TODO vector function that shit
-		   double[] tempCows = new double[numPastrs]; // for copying purposes
-		   MapLocation[] tempPastrs = new MapLocation[numPastrs]; // for copying purposes
-					   for (int i = 0; i < bestCows.length; i++){
-						   if (cowGrowthArray[x][y] > bestCows[i]){ 
-							   //copying over 'bestCows' to tempCows with new value in place
-							   System.arraycopy(bestCows, 0, tempCows, 0, i-1);
-							   tempCows[i] = cowGrowthArray[x][y];
-							   System.arraycopy(bestCows, 0, tempCows, i+1, numPastrs);
-							   bestCows = tempCows;
-							   //adjusting 
-						   }						   
+				//TODO vector function that shit					   
 
 			}
 		}
