@@ -8,22 +8,41 @@ import battlecode.common.RobotController;
 import battlecode.common.RobotType;
 
 public class Combat {
-	public static void kamikaze(RobotController rc, MapLocation m){
+	public static void kamikaze(RobotController rc, MapLocation m) throws GameActionException{
 		//If specific conditions are met, kamikaze is better than normal fighting.
 		//Kamikaze is always preferable when it will at least trade 1 for 1 and
 		//splash onto another enemy soldier robot while avoiding splashing allies.
 		//It is also sometimes useful for destroying pastures. Because normal soldier
 		//combat will trade 1 for 1 anyway, it is useful to kamikaze to destroy a pasture
 		//and damage a nearby enemy soldier.
+		int kamikazeChannel = 5000;
+		//tentatively, we're setting the kamikaze channel to 5000, will change depending on messaging system.
+		//this channel contains the number of robots that want to suicide.
+		if(rc.readBroadcast(kamikazeChannel) > 1){
+			
+		}
+		//once each 
+		
 	}
 	public static void patrol(RobotController rc, MapLocation m){
 		
 	}
 	public static void swarm(RobotController rc, MapLocation m){
+		//First move to a gathering place at a robot's
+		//location. Once there, wait until the band (sized 3)
+		//all broadcasts their arrival. At that point, move as a group to 
+		//combat location.
+		int swarmChannel = 6000;
+		BugMove.generateBugPath(m, rc.getLocation(), rc);
+		
 		
 	}
 	public static void attack(RobotController rc, MapLocation m){
 		
+	}
+	
+	public static void towerAttack(RobotController rc, MapLocation m){
+		//We want to herd cows 
 	}
 	
 	public static void HQAttack(RobotController rc) throws GameActionException{

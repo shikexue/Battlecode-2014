@@ -81,6 +81,8 @@ public class BugMove {
 				//rc.setIndicatorString(2, ""+(Clock.getBytecodeNum()-before));
 				//rc.yield();
 			}
+			// add goal to end
+			pastPos.add(destination);
 			return pastPos;
 		}
 		//When moving around an obstacle, runs this
