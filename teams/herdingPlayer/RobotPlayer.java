@@ -44,10 +44,12 @@ boolean taskSet = false;
 			rc = rcIn;
 			Constants.Task task = Constants.Task.ATTACKING; // default task
 			MapLocation goal = rc.senseEnemyHQLocation(); // default goal
-			ArrayList<MapLocation> path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
+
+			ArrayList<MapLocation> path = BugMove.generateBugPath(goal, rc.getLocation(), rc, goal, 100000);
 			boolean taskSet = false;
-	
+
 			RobotData myData = new RobotData(task, goal, path, taskSet);
+
 
 			// initialize channels and then make first noisetower and pastr
 			if (rc.getType()==RobotType.HQ){
@@ -136,6 +138,7 @@ boolean taskSet = false;
 
 		int noisetowersToMake = rc.readBroadcast(makeNoisetowerChan);
 		int noisetowersBeingMade = rc.readBroadcast(noisetowerBeingMadeChan);
+
 
 		rc.setIndicatorString(1, "" +  pastrsToMake + " " + pastrsBeingMade + " " + noisetowersToMake + " " + noisetowersBeingMade);
 

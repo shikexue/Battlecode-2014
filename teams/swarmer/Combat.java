@@ -28,6 +28,13 @@ public class Combat {
 		
 	}
 	public static void swarm(RobotController rc, MapLocation m){
+		//First move to a gathering place at a robot's
+		//location. Once there, wait until the band (sized 3)
+		//all broadcasts their arrival. At that point, move as a group to 
+		//combat location.
+		int swarmChannel = 6000;
+		BugMove.generateBugPath(m, rc.getLocation(), rc);
+		
 		
 	}
 	public static void attack(RobotController rc, MapLocation m){

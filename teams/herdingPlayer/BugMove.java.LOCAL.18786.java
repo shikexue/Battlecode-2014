@@ -1,4 +1,4 @@
-package swarmer;
+package herdingPlayer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,7 +9,6 @@ import battlecode.common.Direction;
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 import battlecode.common.RobotController;
-import battlecode.common.RobotType;
 import battlecode.common.TerrainTile;
 
 public class BugMove {
@@ -161,24 +160,14 @@ public class BugMove {
 		}
 	}
 	
-	//for a noise tower, shoots to move cows along path
-	public static void shootPath(ArrayList<MapLocation> pathToFollow) throws GameActionException{
+	//shoots to move cows along path
+	public static void shootPath(ArrayList<MapLocation> pathToFollow, int towerGetPathChan) throws GameActionException{
 		if(placeOnPath < pathToFollow.size()-1){
-			MapLocation toShoot = pathToFollow.get(placeOnPath).add(pathToFollow.get(placeOnPath + 1).directionTo(pathToFollow.get(placeOnPath)));
-			if(rc.getLocation().distanceSquaredTo(toShoot) <= rc.getType().attackRadiusMaxSquared){
-				rc.attackSquareLight(toShoot);
-			//rc.setIndicatorString(2, "Shooting " + pathToFollow.get(placeOnPath));
-			//rc.setIndicatorString(0, ""+pathToFollow.get(placeOnPath).add(pathToFollow.get(placeOnPath + 1).directionTo(pathToFollow.get(placeOnPath))).distanceSquaredTo(rc.getLocation()));
-				placeOnPath++;
-				if(pathToFollow.get(placeOnPath).x * 100 + pathToFollow.get(placeOnPath).y == rc.readBroadcast(4005)){
-					rc.broadcast(4002, 0);
-				}
-			} else {
-				rc.broadcast(4002, 0);
-			}
+			rc.attackSquareLight(pathToFollow.get(placeOnPath).add(pathToFollow.get(placeOnPath + 1).directionTo(pathToFollow.get(placeOnPath))));
+			rc.setIndicatorString(2, "" + pathToFollow.get(placeOnPath));
+			placeOnPath++;
 		} else {
-			rc.broadcast(4002, 0);
-			rc.setIndicatorString(2, "Not shooting" + pathToFollow.get(placeOnPath));
+			rc.broadcast(towerGetPathChan, 0); //TODO: broadcasting here
 		}
 	}
 	//Moves toward target 
