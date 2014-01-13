@@ -3,6 +3,7 @@ package herdingPlayer;
 import battlecode.common.*;
 
 import java.util.*;
+
 import herdingPlayer.BugMove;
 import herdingPlayer.VectorFunctions;
 import herdingPlayer.Constants;
@@ -27,6 +28,10 @@ boolean taskSet = false;
 	static int noisetowerBeingMadeChan = 23;
 	static int makeNoisetowerChan = 24;
 	static int makeNoisetowerLocChan[] = new int[]{25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
+	
+	static int cowChannel = 4000;
+	static int cowLocChannel = 4001;
+	static int towerGetPathChan = 4002; //TODO: make this an array so we can have 1+ tower?
 	
 	
 	//next used channel should start with 11
@@ -63,6 +68,13 @@ boolean taskSet = false;
 				}else if(rc.getType()==RobotType.SOLDIER){
 					// to store data like task, goal, path between rounds, have runFoo return them for soldiers, pastrs, towers
 					myData = runSoldier(myData.getTask(), myData.getPath(), myData.getGoal(), myData.getTaskSet());
+				}else if (rc.getType()==RobotType.NOISETOWER){
+					//TODO: fix broadcasting
+					//TODO: work with path
+					if((path == null || rc.readBroadcast(towerGetPathChan) == 0) && rc.sensePastrLocations(rc.getTeam()).length > 0){
+						myData.path = getTowerPath(rc);						
+					}
+					runTower(myData.getPath());
 				}
 
 
@@ -85,6 +97,13 @@ boolean taskSet = false;
 	}
 
 
+	/*
+	 * Runs the noise towers; currently, just shoot in path
+	 */
+	private static void runTower(ArrayList<MapLocation >path) throws GameActionException{
+		BugMove.shootPath(path, towerGetPathChan);
+	}
+	
 	/*
 	 * Function for the HQ; if more robots can be spawned and there is a free space near the HQ, spawn
 	 */	
@@ -174,7 +193,7 @@ boolean taskSet = false;
 				default:
 
 				}
-
+				senseNearbyCows(rc); //TODO: is this too expensive?
 			}
 			// if not already at goal, move towards goal
 			// TODO: allow interruptions
@@ -235,6 +254,29 @@ boolean taskSet = false;
 		// make sure that position is broadcast before soldiers are told to read it
 		rc.broadcast(makeNoisetowerLocChan[currentMakeCount + 1], VectorFunctions.locToInt(noisetowerLoc));
 		rc.broadcast(makeNoisetowerChan, currentMakeCount + 1);
+	}
+	
+	private static void senseNearbyCows(RobotController rc) throws GameActionException{
+		for(MapLocation nearby:MapLocation.getAllMapLocationsWithinRadiusSq(rc.getLocation(), 35)){
+			int cows = (int)rc.senseCowsAtLocation(nearby);
+			if (cows > rc.readBroadcast(cowChannel)){
+				rc.broadcast(cowChannel, cows);
+				rc.broadcast(cowLocChannel, nearby.x * 100 + nearby.y);
+				//TODO vector function that shit
+			}
+		}
+		rc.setIndicatorString(0, ""+rc.readBroadcast(cowLocChannel));
+	}
+	
+	private static ArrayList<MapLocation> getTowerPath(RobotController rc) throws GameActionException{
+		MapLocation[] allyPastrLocs = rc.sensePastrLocations(rc.getTeam());
+		MapLocation bestTarget = new MapLocation(rc.readBroadcast(cowLocChannel)/100,rc.readBroadcast(cowLocChannel)%100);
+		rc.setIndicatorString(9, ""+bestTarget);
+		rc.broadcast(towerGetPathChan, 1);
+		return BugMove.mergePath(BugMove.generateBugPath(allyPastrLocs[0], bestTarget, rc));
+		//for(int i = 0; i < 10; i++){
+		//	path = BugMove.simplefyPath(path);
+		//}
 	}
 }
 	
