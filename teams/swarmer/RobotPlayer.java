@@ -43,10 +43,18 @@ public class RobotPlayer {
 	private static ArrayList<MapLocation> getTowerPath(RobotController rc) throws GameActionException{
 		MapLocation[] allyPastrLocs = rc.sensePastrLocations(rc.getTeam());
 		MapLocation bestTarget = new MapLocation(rc.readBroadcast(4001)/100,rc.readBroadcast(4001)%100);
-		rc.broadcast(4000, 0);
-		rc.setIndicatorString(1, ""+bestTarget);
-		rc.broadcast(4002, 1);
-		return BugMove.mergePath(BugMove.generateBugPath(allyPastrLocs[0], bestTarget, rc));
+		rc.broadcast(4000, 0); //reset cow channel for next sensing
+		rc.broadcast(4002, 1); //set channel for having found a path
+		MapLocation bestAllyPastr = allyPastrLocs[0];
+		int bestDistance = bestAllyPastr.distanceSquaredTo(bestTarget);
+		for(int i = 1; i < allyPastrLocs.length; i++){
+			if(allyPastrLocs[i].distanceSquaredTo(bestTarget) < bestDistance){
+				bestAllyPastr = allyPastrLocs[i];
+				bestDistance = allyPastrLocs[i].distanceSquaredTo(bestTarget);
+			}
+		}
+		rc.broadcast(4005, bestAllyPastr.x * 100 + bestAllyPastr.y);
+		return BugMove.mergePath(BugMove.generateBugPath(bestAllyPastr, bestTarget, rc));
 		//for(int i = 0; i < 10; i++){
 		//	path = BugMove.simplefyPath(path);
 		//}
