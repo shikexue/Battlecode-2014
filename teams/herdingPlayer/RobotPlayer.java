@@ -5,11 +5,11 @@ import battlecode.common.*;
 import java.util.*;
 import herdingPlayer.BugMove;
 import herdingPlayer.VectorFunctions;
+import herdingPlayer.Constants;
+import herdingPlayer.RobotData;
 
 public class RobotPlayer {
-	public enum Task {
-		HERDING, ATTACKING, DEFENDING, PASTRMAKING, TOWERMAKING
-	}
+
 
 	static RobotController rc;
 	static Random randall = new Random();
@@ -21,30 +21,33 @@ public class RobotPlayer {
 	static int pastrBeingMadeChan = 0;
 	static int makePastrChan = 1; //channel will have -1 if no pastures ordered
 	static int makePastrLocChan[] = new int[]{23,4,5};
-   
+
 	/*
 	 * Calls the run functions of the different types of robot
 	 */
 	public static void run(RobotController rcIn) {
 		try{
 			rc = rcIn;
-			Task task = Task.ATTACKING; // default task
+			Constants.Task task = Constants.Task.ATTACKING; // default task
 			MapLocation goal = rc.senseEnemyHQLocation(); // default goal
 			ArrayList<MapLocation> path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
-			
-			
+
+			RobotData myData = new RobotData(task, goal, path);
+
 			// do this once to initialize channels at beginning of game
 			if (rc.getType()==RobotType.HQ){
 				rc.broadcast(makePastrChan, -1);
 			}
-			
+
 			// splitting up behavior based on robot type
 			while(true){
 				if(rc.getType()==RobotType.HQ){
 					runHQ();
 				}else if(rc.getType()==RobotType.SOLDIER){
-					runSoldier(task, path, goal);
+					// to store data like task, goal, path between rounds, have runFoo return them for soldiers, pastrs, towers
+					myData = runSoldier(myData.getTask(), myData.getPath(), myData.getGoal());
 				}
+
 
 				rc.yield();
 			}
@@ -58,13 +61,11 @@ public class RobotPlayer {
 	private static void runHQ() throws GameActionException 
 	{
 		tryToSpawn();
-		rc.setIndicatorString(arg0, arg1)
-        rc.setIndicatorString(0, "" + rc.readBroadcast(makePastrChan));
-        rc.setIndicatorString(1, "" + rc.readBroadcast(pastrBeingMadeChan));
+		rc.setIndicatorString(0, "" + rc.readBroadcast(makePastrChan));
+		rc.setIndicatorString(1, "" + rc.readBroadcast(pastrBeingMadeChan));
 
 		// if there are no pastures and none are being made, and none have been ordered, send order to make one
-        if ((rc.readBroadcast(pastrBeingMadeChan) == 0) && (rc.sensePastrLocations(rc.getTeam()).length == 0) && (rc.readBroadcast(makePastrChan) == -1)){
-			rc.setIndicatorString(3, "calling make PAstr");
+		if ((rc.readBroadcast(pastrBeingMadeChan) == 0) && (rc.sensePastrLocations(rc.getTeam()).length == 0) && (rc.readBroadcast(makePastrChan) == -1)){
 			sendMakeNearbyPastrCommand(5);
 		}
 
@@ -91,50 +92,60 @@ public class RobotPlayer {
 	/*
 	 * Runs soldiers - herding practice
 	 */
-	private static void runSoldier(Task task, ArrayList<MapLocation> path, MapLocation goal) throws GameActionException{
+	private static RobotData runSoldier(Constants.Task task, ArrayList<MapLocation> path, MapLocation goal) throws GameActionException{
 		//TODO: Select group of cows to herd
 		//TODO: herd cows towards pastr
 
 		rc.setIndicatorString(2, "" + task);
-		
+
 		//if there is a command sent out to make a pastr, make one 
 		int lastPastrNum = rc.readBroadcast(makePastrChan);
 		if (lastPastrNum > -1){
 			goal = VectorFunctions.intToLoc(rc.readBroadcast(makePastrLocChan[lastPastrNum]));
 			path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
-			task = Task.PASTRMAKING;
-			
+			task = Constants.Task.PASTRMAKING;
+
 			rc.broadcast(pastrBeingMadeChan, rc.readBroadcast(pastrBeingMadeChan)+1);
 
 			//decrement makePastrChan so other robots don't try to make the same pastr
 			rc.broadcast(makePastrChan, lastPastrNum-1);
 		}
 
-		//if have reached goal, perform designated task
-		if (rc.getLocation().equals(goal)){
-			switch (task){
-			case PASTRMAKING:
-				rc.construct(RobotType.PASTR);
-			case TOWERMAKING:
-				rc.construct(RobotType.NOISETOWER);
-			case ATTACKING:
-				Robot[] nearbyEnemies = rc.senseNearbyGameObjects(Robot.class,10,rc.getTeam().opponent());
-				if (nearbyEnemies.length > 0) {
-					RobotInfo robotInfo = rc.senseRobotInfo(nearbyEnemies[0]);
-					rc.attackSquare(robotInfo.location);
+
+		//if robot is active, move or perform tasl
+		if (rc.isActive()){
+			//if have reached goal, perform designated task
+			if (rc.getLocation().equals(goal)){
+				//rc.setIndicatorString(1, "completing Task");
+				switch (task){
+				case PASTRMAKING:
+					rc.setIndicatorString(1,"making PASTR");
+					rc.construct(RobotType.PASTR);
+					break;
+				case TOWERMAKING:
+					rc.construct(RobotType.NOISETOWER);
+					break;
+				case ATTACKING:
+					Robot[] nearbyEnemies = rc.senseNearbyGameObjects(Robot.class,10,rc.getTeam().opponent());
+					if (nearbyEnemies.length > 0) {
+						RobotInfo robotInfo = rc.senseRobotInfo(nearbyEnemies[0]);
+						rc.attackSquare(robotInfo.location);
+					}
+					break;
+				default:
+
 				}
-			default:
-				
+
+			}
+			// if not already at goal, move towards goal
+			// TODO: allow interruptions
+			else{
+				rc.setIndicatorString(1, "followingPath");
+				BugMove.followPath(path);
 			}
 		}
-		// if not already at goal, move towards goal
-		// TODO: allow interruptions
-		else{
-			rc.setIndicatorString(1, "followingPath");
-			BugMove.followPath(path);
-		}
 
-
+		return new RobotData(task, goal, path);
 	}
 
 
@@ -150,9 +161,8 @@ public class RobotPlayer {
 		//TODO: try a few times to make sure is a field?
 		while(rc.senseTerrainTile(pastrLoc).ordinal() > 1){ //0 NORMAL, 1 ROAD, 2 VOID, 3 OFF_MAP
 			pastrLoc = new MapLocation(randall.nextInt(pastrDistance),randall.nextInt(pastrDistance));
-			rc.setIndicatorString(3, "finding pastr location");
+			rc.setIndicatorString(3, "pastr at"  + pastrLoc.x + ", " + pastrLoc.y);
 		}
-		 rc.setIndicatorString(3, "pastr location found");
 
 		//broadcast that a channel should be made, and in desired position
 		// make sure that position is broadcast before soldiers are told to read it
