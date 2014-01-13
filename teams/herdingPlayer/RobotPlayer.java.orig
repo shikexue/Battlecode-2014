@@ -41,6 +41,10 @@ boolean taskSet = false;
 	 */
 	public static void run(RobotController rcIn) {
 		try{
+<<<<<<< HEAD
+
+=======
+>>>>>>> asyastoolazytomerge
 			rc = rcIn;
 			Constants.Task task = Constants.Task.ATTACKING; // default task
 			MapLocation goal = rc.senseEnemyHQLocation(); // default goal
@@ -58,14 +62,29 @@ boolean taskSet = false;
 				rc.broadcast(makePastrChan, 0);
 				rc.broadcast(pastrBeingMadeChan, 0);
 				rc.yield();
+<<<<<<< HEAD
+				tryToSpawn();
+			}
+			// if pastr has been made, decrement appropriate channel so hq doesn't double-count
+			else if (rc.getType()==RobotType.PASTR){
+				rc.broadcast(pastrBeingMadeChan, rc.readBroadcast(pastrBeingMadeChan)-1);
+=======
 				sendMakeNearbyPastrCommand(5);
 //				sendMakeNearbyPastrCommand(5);
 				sendMakeDefensiveNoisetowerCommand();
+>>>>>>> asyastoolazytomerge
 			}
 			
 			// splitting up behavior based on robot type
 			while(true){
 				if(rc.getType()==RobotType.HQ){
+<<<<<<< HEAD
+
+					runHQ();
+				}else if(rc.getType()==RobotType.SOLDIER){
+					// to store data like task, goal, path between rounds, have runFoo return them for soldiers, pastrs, towers
+					myData = runSoldier(myData.getTask(), myData.getPath(), myData.getGoal());
+=======
 					runHQ();
 				}else if(rc.getType()==RobotType.SOLDIER){
 					// to store data like task, goal, path between rounds, have runFoo return them for soldiers, pastrs, towers
@@ -77,6 +96,7 @@ boolean taskSet = false;
 						myData.path = getTowerPath(rc);						
 					}
 					runTower(myData.getPath());
+>>>>>>> asyastoolazytomerge
 				}
 
 
@@ -94,6 +114,18 @@ boolean taskSet = false;
 		rc.setIndicatorString(0, "" + rc.readBroadcast(makeNoisetowerChan));
 		rc.setIndicatorString(1, "" + rc.readBroadcast(makePastrChan));
 		
+<<<<<<< HEAD
+		// trying to make 2 pastrs
+		int pastrBeingMade = rc.readBroadcast(pastrBeingMadeChan);
+		int pastrAlreadyMade = rc.sensePastrLocations(rc.getTeam()).length; 
+		int pastrUnansweredCommands = rc.readBroadcast(makePastrChan) + 1; // no commands sent when -1
+		if(pastrBeingMade + pastrAlreadyMade + pastrUnansweredCommands < 2 ){
+			sendMakeNearbyPastrCommand(5);
+			rc.yield();
+		}
+
+=======
+>>>>>>> asyastoolazytomerge
 		tryToSpawn();
 		
 	}
@@ -136,11 +168,29 @@ boolean taskSet = false;
 		int pastrsToMake = rc.readBroadcast(makePastrChan);
 		int pastrsBeingMade = rc.readBroadcast(pastrBeingMadeChan);
 
+<<<<<<< HEAD
+		//if there is a command sent out to make a pastr, make one 
+		int lastPastrNum = rc.readBroadcast(makePastrChan);
+		if (lastPastrNum > -1  && task != Constants.Task.PASTRMAKING){
+
+			rc.setIndicatorString(0,"makePastrChan is " + lastPastrNum);
+			goal = VectorFunctions.intToLoc(rc.readBroadcast(makePastrLocChan[lastPastrNum]));
+			path = BugMove.generateBugPath(goal, rc.getLocation(), rc, goal, 100000);
+			task = Constants.Task.PASTRMAKING;
+=======
 		int noisetowersToMake = rc.readBroadcast(makeNoisetowerChan);
 		int noisetowersBeingMade = rc.readBroadcast(noisetowerBeingMadeChan);
+>>>>>>> asyastoolazytomerge
 
 
+<<<<<<< HEAD
+			//decrement makePastrChan so other robots don't try to make the same pastr
+			rc.broadcast(makePastrChan, lastPastrNum-1);
+
+		}
+=======
 		rc.setIndicatorString(1, "" +  pastrsToMake + " " + pastrsBeingMade + " " + noisetowersToMake + " " + noisetowersBeingMade);
+>>>>>>> asyastoolazytomerge
 
 		//if there is a noisetower to make that isn't being made, make one
 		if(taskSet == false && noisetowersToMake > 0 && noisetowersBeingMade < noisetowersToMake){
@@ -228,9 +278,16 @@ boolean taskSet = false;
 		}
 
 		//broadcast that a channel should be made, and in desired position
+<<<<<<< HEAD
+		// make sure that position is broadcast before soldiers are tolstr and value is0str and value is0d to read it
+		rc.broadcast(makePastrLocChan[currentMakeCount + 1], VectorFunctions.locToInt(pastrLoc));
+		rc.broadcast(makePastrChan, currentMakeCount + 1);
+		
+=======
 		// make sure that position is broadcast before soldiers are told to read it
 		rc.broadcast(makePastrLocChan[currentMakeCount + 1 ], VectorFunctions.locToInt(pastrLoc));
 		rc.broadcast(makePastrChan, currentMakeCount + 1);	
+>>>>>>> asyastoolazytomerge
 	}
 	
 	//make a defensive noisetower close to the nearest constructed pasture
@@ -255,6 +312,55 @@ boolean taskSet = false;
 	
 		//broadcast that a channel should be made, and in desired position
 		// make sure that position is broadcast before soldiers are told to read it
+<<<<<<< HEAD
+		rc.broadcast(makePastrLocChan[currentMakeCount + 1 ], VectorFunctions.locToInt(pastrLocation));
+		rc.broadcast(makePastrChan, currentMakeCount + 1);	
+	}
+	
+	
+
+	/*
+	 * 	finds the best several pastr locations, 
+	 *  where 'best' is defined as the locations within a certain distance from hq that have the highest cow growth rate
+	 *  also only returns locations that are not currently occupied b
+	 * @ distanceDesired - distance radius from hq which is considered
+	 * @ numPastrs - the 'best' n locations are returned, where n = numPastrs
+	 */
+	private MapLocation[] pickCloseFertilePastr(int distanceDesired, int numPastrs) throws GameActionException{
+		   double[][] cowGrowthArray = rc.senseCowGrowth();
+		   MapLocation[] bestPastrs = new MapLocation[numPastrs]; //keeps track of best pastr locaitons, 0 is best
+		   double[] bestCows = new double[numPastrs]; // keeps track of cow growth rate at best pastr locations
+		   double[] tempCows = new double[numPastrs]; // for copying purposes
+		   MapLocation[] tempPastrs = new MapLocation[numPastrs]; // for copying purposes
+		  
+		   int hqX = rc.senseHQLocation().x;
+		   int hqY = rc.senseHQLocation().y;
+		   
+		   // iterating over locations in a square of 'radius' distanceDesired centered at hq location
+		   for (int x = -1*distanceDesired + hqX; x <= distanceDesired + hqX; x++){
+			   for (int y = -1*distanceDesired + hqY; y <= distanceDesired + hqY; y++){
+				   // checking that is a valid location
+				   //TODO: check that can read a location when try to path to it?
+				   if (x > 0 && y > 0 && x < cowGrowthArray.length && y < cowGrowthArray[0].length){
+					   // current location is better than all current locations
+					   for (int i = 0; i < bestCows.length; i++){
+						   if (cowGrowthArray[x][y] > bestCows[i]){ 
+							   //copying over 'bestCows' to tempCows with new value in place
+							   System.arraycopy(bestCows, 0, tempCows, 0, i-1);
+							   tempCows[i] = cowGrowthArray[x][y];
+							   System.arraycopy(bestCows, 0, tempCows, i+1, numPastrs);
+							   bestCows = tempCows;
+							   
+							   //adjusting 
+						   }						   
+					   }
+
+				   }
+			   }
+		   }
+		   
+		   return bestPastrs;
+=======
 		rc.broadcast(makeNoisetowerLocChan[currentMakeCount + 1], VectorFunctions.locToInt(noisetowerLoc));
 		rc.broadcast(makeNoisetowerChan, currentMakeCount + 1);
 	}
@@ -266,19 +372,8 @@ boolean taskSet = false;
 				rc.broadcast(cowChannel, cows);
 				rc.broadcast(cowLocChannel, nearby.x * 100 + nearby.y);
 				//TODO vector function that shit
-		   double[] tempCows = new double[numPastrs]; // for copying purposes
-		   MapLocation[] tempPastrs = new MapLocation[numPastrs]; // for copying purposes
-					   for (int i = 0; i < bestCows.length; i++){
-						   if (cowGrowthArray[x][y] > bestCows[i]){ 
-							   //copying over 'bestCows' to tempCows with new value in place
-							   System.arraycopy(bestCows, 0, tempCows, 0, i-1);
-							   tempCows[i] = cowGrowthArray[x][y];
-							   System.arraycopy(bestCows, 0, tempCows, i+1, numPastrs);
-							   bestCows = tempCows;
-							   //adjusting 
-						   }						   
-
 			}
+>>>>>>> asyastoolazytomerge
 		}
 		rc.setIndicatorString(0, ""+rc.readBroadcast(cowLocChannel));
 	}

@@ -13,7 +13,15 @@ public class RobotPlayer {
 	public static void run(RobotController rc) {
 		rand = new Random();
 		Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST, Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
+		try{
+		if (rc.getType()==RobotType.HQ){
+			rc.broadcast(0,0);
+		}
 		
+		rc.setIndicatorString(0, "" + rc.readBroadcast(0));
+		} catch (Exception e){
+			System.out.println("Exception");
+		}
 		while(true) {
 			if (rc.getType() == RobotType.HQ) {
 				try {					
@@ -23,7 +31,11 @@ public class RobotPlayer {
 						if (rc.senseObjectAtLocation(rc.getLocation().add(toEnemy)) == null) {
 							rc.spawn(toEnemy);
 						}
+
+						rc.broadcast(0, rc.readBroadcast(0)+1);
+						rc.setIndicatorString(0, "" + (rc.readBroadcast(0)+1));
 					}
+					
 				} catch (Exception e) {
 					System.out.println("HQ Exception");
 				}
