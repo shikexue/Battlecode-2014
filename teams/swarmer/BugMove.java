@@ -160,14 +160,21 @@ public class BugMove {
 		}
 	}
 	
-	//shoots to move cows along path
+	//for a noise tower, shoots to move cows along path
 	public static void shootPath(ArrayList<MapLocation> pathToFollow) throws GameActionException{
 		if(placeOnPath < pathToFollow.size()-1){
-			rc.attackSquareLight(pathToFollow.get(placeOnPath).add(pathToFollow.get(placeOnPath + 1).directionTo(pathToFollow.get(placeOnPath))));
-			rc.setIndicatorString(2, "" + pathToFollow.get(placeOnPath));
-			placeOnPath++;
+			MapLocation toShoot = pathToFollow.get(placeOnPath).add(pathToFollow.get(placeOnPath + 1).directionTo(pathToFollow.get(placeOnPath)));
+			if(rc.getLocation().distanceSquaredTo(toShoot) <= rc.getType().attackRadiusMaxSquared){
+				rc.attackSquareLight(toShoot);
+			//rc.setIndicatorString(2, "Shooting " + pathToFollow.get(placeOnPath));
+			//rc.setIndicatorString(0, ""+pathToFollow.get(placeOnPath).add(pathToFollow.get(placeOnPath + 1).directionTo(pathToFollow.get(placeOnPath))).distanceSquaredTo(rc.getLocation()));
+				placeOnPath++;
+			} else {
+				rc.broadcast(4002, 0);
+			}
 		} else {
 			rc.broadcast(4002, 0);
+			rc.setIndicatorString(2, "Not shooting" + pathToFollow.get(placeOnPath));
 		}
 	}
 	//Moves toward target 

@@ -27,7 +27,9 @@ public class RobotPlayer {
 					runSoldier(rc);
 				} else if(rc.getType() == RobotType.NOISETOWER){
 					if((path == null || rc.readBroadcast(4002) == 0) && rc.sensePastrLocations(rc.getTeam()).length > 0){
-						path = getTowerPath(rc);						
+						//TODO use broadcasting to keep track of #pastrs.
+						path = getTowerPath(rc);
+						rc.setIndicatorString(2, "plan to shoot "+path.get(0));
 					}
 					runTower(rc, path);
 				}
@@ -41,7 +43,8 @@ public class RobotPlayer {
 	private static ArrayList<MapLocation> getTowerPath(RobotController rc) throws GameActionException{
 		MapLocation[] allyPastrLocs = rc.sensePastrLocations(rc.getTeam());
 		MapLocation bestTarget = new MapLocation(rc.readBroadcast(4001)/100,rc.readBroadcast(4001)%100);
-		rc.setIndicatorString(9, ""+bestTarget);
+		rc.broadcast(4000, 0);
+		rc.setIndicatorString(1, ""+bestTarget);
 		rc.broadcast(4002, 1);
 		return BugMove.mergePath(BugMove.generateBugPath(allyPastrLocs[0], bestTarget, rc));
 		//for(int i = 0; i < 10; i++){
@@ -72,25 +75,33 @@ public class RobotPlayer {
 			//Combat.kamikaze(rc, rc.getLocation());
 			if(rc.readBroadcast(towerChannel) == 0 && rc.getLocation().distanceSquaredTo(rc.senseHQLocation()) > 15){
 				rc.broadcast(towerChannel, rc.readBroadcast(towerChannel) + 1);
+				rc.broadcast(4003, rc.getLocation().x*100 + rc.getLocation().y);
 				rc.construct(RobotType.NOISETOWER);
 			} else if(rc.readBroadcast(pastureChannel) < 3 && rc.getLocation().distanceSquaredTo(rc.senseHQLocation()) > 4){
 				rc.broadcast(pastureChannel, rc.readBroadcast(pastureChannel) + 1);
 				rc.construct(RobotType.PASTR);
 			} else if(rc.canMove(moveDir)){
-				rc.move(moveDir);
+				rc.sneak(moveDir);
 			} 
-		senseNearbyCows(rc);
+		senseTowerCows(rc);
 		}
 	}
 	
-	private static void senseNearbyCows(RobotController rc) throws GameActionException{
+	private static void senseTowerCows(RobotController rc) throws GameActionException{
 		int cowChannel = 4000;
 		int cowLocChannel = 4001;
 		for(MapLocation nearby:MapLocation.getAllMapLocationsWithinRadiusSq(rc.getLocation(), 35)){
 			int cows = (int)rc.senseCowsAtLocation(nearby);
-			if (cows > rc.readBroadcast(cowChannel)){
-				rc.broadcast(cowChannel, cows);
-				rc.broadcast(cowLocChannel, nearby.x * 100 + nearby.y);
+			if (cows > rc.readBroadcast(cowChannel) && nearby.distanceSquaredTo(new MapLocation(rc.readBroadcast(4003)/100, rc.readBroadcast(4003)%100)) <= 361){
+				boolean farPasture = true;
+				for(MapLocation allyPasture:rc.sensePastrLocations(rc.getTeam())){
+					if (nearby.distanceSquaredTo(allyPasture) < GameConstants.PASTR_RANGE)
+						farPasture = false;
+				}
+				if (farPasture){
+					rc.broadcast(cowChannel, cows);
+					rc.broadcast(cowLocChannel, nearby.x * 100 + nearby.y);
+				}
 				//TODO vector function that shit
 			}
 		}
@@ -98,7 +109,7 @@ public class RobotPlayer {
 	}
 	
 	private static void runHQ(RobotController rc) throws GameActionException{
-		rc.broadcast(4000, 0);
+		rc.setIndicatorString(1, ""+rc.readBroadcast(4003));
 		Combat.HQAttack(rc);
 		Direction spawnDir = Direction.NORTH;
 		if(rc.isActive() && rc.canMove(spawnDir) && rc.senseRobotCount() < GameConstants.MAX_ROBOTS){
