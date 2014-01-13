@@ -38,7 +38,10 @@ public class RobotPlayer {
 			if (rc.getType()==RobotType.HQ){
 				rc.broadcast(makePastrChan, -1);
 			}
-
+			// if pastr has been made, decrement appropriate channel so hq doesn't double-count
+			else if (rc.getType()==RobotType.PASTR){
+				rc.broadcast(pastrBeingMadeChan, rc.readBroadcast(pastrBeingMadeChan)-1);
+			}
 			// splitting up behavior based on robot type
 			while(true){
 				if(rc.getType()==RobotType.HQ){
@@ -65,7 +68,13 @@ public class RobotPlayer {
 		rc.setIndicatorString(1, "" + rc.readBroadcast(pastrBeingMadeChan));
 
 		// if there are no pastures and none are being made, and none have been ordered, send order to make one
-		if ((rc.readBroadcast(pastrBeingMadeChan) == 0) && (rc.sensePastrLocations(rc.getTeam()).length == 0) && (rc.readBroadcast(makePastrChan) == -1)){
+		//if ((rc.readBroadcast(pastrBeingMadeChan) == 0) && (rc.sensePastrLocations(rc.getTeam()).length == 0) && (rc.readBroadcast(makePastrChan) == -1)){
+		
+		// trying to make 2 pastrs
+		int pastrBeingMade = rc.readBroadcast(pastrBeingMadeChan);
+		int pastrAlreadyMade = rc.sensePastrLocations(rc.getTeam()).length; 
+		int pastrUnansweredCommands = rc.readBroadcast(makePastrChan) + 1; // no commands sent when -1
+		if(pastrBeingMade + pastrAlreadyMade + pastrUnansweredCommands < 2 ){
 			sendMakeNearbyPastrCommand(5);
 		}
 
@@ -100,7 +109,7 @@ public class RobotPlayer {
 
 		//if there is a command sent out to make a pastr, make one 
 		int lastPastrNum = rc.readBroadcast(makePastrChan);
-		if (lastPastrNum > -1){
+		if (lastPastrNum > -1  && task != Constants.Task.PASTRMAKING){
 			goal = VectorFunctions.intToLoc(rc.readBroadcast(makePastrLocChan[lastPastrNum]));
 			path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
 			task = Constants.Task.PASTRMAKING;
@@ -119,7 +128,6 @@ public class RobotPlayer {
 				//rc.setIndicatorString(1, "completing Task");
 				switch (task){
 				case PASTRMAKING:
-					rc.setIndicatorString(1,"making PASTR");
 					rc.construct(RobotType.PASTR);
 					break;
 				case TOWERMAKING:
@@ -161,12 +169,21 @@ public class RobotPlayer {
 		//TODO: try a few times to make sure is a field?
 		while(rc.senseTerrainTile(pastrLoc).ordinal() > 1){ //0 NORMAL, 1 ROAD, 2 VOID, 3 OFF_MAP
 			pastrLoc = new MapLocation(randall.nextInt(pastrDistance),randall.nextInt(pastrDistance));
-			rc.setIndicatorString(3, "pastr at"  + pastrLoc.x + ", " + pastrLoc.y);
 		}
 
 		//broadcast that a channel should be made, and in desired position
 		// make sure that position is broadcast before soldiers are told to read it
 		rc.broadcast(makePastrLocChan[currentMakeCount + 1 ], VectorFunctions.locToInt(pastrLoc));
+		rc.broadcast(makePastrChan, currentMakeCount+1);
+		
+	}
+	
+	private static void sendMakePastrCommand(MapLocation pastrLocation) throws GameActionException{
+		int currentMakeCount = rc.readBroadcast(makePastrChan);
+
+		//broadcast that a channel should be made, and in desired position
+		// make sure that position is broadcast before soldiers are told to read it
+		rc.broadcast(makePastrLocChan[currentMakeCount + 1 ], VectorFunctions.locToInt(pastrLocation));
 		rc.broadcast(makePastrChan, currentMakeCount + 1);	
 	}
 }
