@@ -1,20 +1,35 @@
 package swarmer;
 
+import java.util.ArrayList;
+import java.util.Random;
 import battlecode.common.Direction;
 import battlecode.common.GameActionException;
 import battlecode.common.GameConstants;
+import battlecode.common.MapLocation;
 import battlecode.common.Robot;
 import battlecode.common.RobotController;
 import battlecode.common.RobotType;
 
 public class RobotPlayer {
+	static Random rand = new Random();
+	static Direction[] directions = {Direction.NORTH, Direction.NORTH_EAST, Direction.EAST, Direction.SOUTH_EAST, Direction.SOUTH, Direction.SOUTH_WEST, Direction.WEST, Direction.NORTH_WEST};
+	
+	
 	public static void run(RobotController rc){
+		rand.setSeed((rc.getRobot().getID()));
+		ArrayList<MapLocation> path = null;
 		while(true){
 			try{
+				//System.out.println(BugMove.placeOnPath);
 				if(rc.getType() == RobotType.HQ){
 					runHQ(rc);
 				} else if(rc.getType() == RobotType.SOLDIER){
 					runSoldier(rc);
+				} else if(rc.getType() == RobotType.NOISETOWER){
+					if((path == null || rc.readBroadcast(4002) == 0) && rc.sensePastrLocations(rc.getTeam()).length > 0){
+						path = getTowerPath(rc);						
+					}
+					runTower(rc, path);
 				}
 			} catch(Exception e){
 				e.printStackTrace();
@@ -22,6 +37,22 @@ public class RobotPlayer {
 			rc.yield();
 		}
 	}
+	
+	private static ArrayList<MapLocation> getTowerPath(RobotController rc) throws GameActionException{
+		MapLocation[] allyPastrLocs = rc.sensePastrLocations(rc.getTeam());
+		MapLocation bestTarget = new MapLocation(rc.readBroadcast(4001)/100,rc.readBroadcast(4001)%100);
+		rc.setIndicatorString(9, ""+bestTarget);
+		rc.broadcast(4002, 1);
+		return BugMove.mergePath(BugMove.generateBugPath(allyPastrLocs[0], bestTarget, rc));
+		//for(int i = 0; i < 10; i++){
+		//	path = BugMove.simplefyPath(path);
+		//}
+	}
+	
+	private static void runTower(RobotController rc, ArrayList<MapLocation >path) throws GameActionException{
+		BugMove.shootPath(path);
+	}
+	
 	
 	private static void runSoldier(RobotController rc) throws GameActionException{
 		Robot[] nearbyRobots = rc.senseNearbyGameObjects(Robot.class);
@@ -32,26 +63,43 @@ public class RobotPlayer {
 				}
 			}
 		}
-		
+		//rc.sense
 		if(rc.isActive()){
-			Direction moveDir = Direction.EAST;
-			
+			Direction moveDir = directions[rand.nextInt(8)];
+			int towerChannel = 1000;
+			int pastureChannel = 2000;
+			//TODO Actually put buildings in reasonable places
 			//Combat.kamikaze(rc, rc.getLocation());
-			if(rc.canMove(moveDir)){
+			if(rc.readBroadcast(towerChannel) == 0 && rc.getLocation().distanceSquaredTo(rc.senseHQLocation()) > 15){
+				rc.broadcast(towerChannel, rc.readBroadcast(towerChannel) + 1);
+				rc.construct(RobotType.NOISETOWER);
+			} else if(rc.readBroadcast(pastureChannel) < 3 && rc.getLocation().distanceSquaredTo(rc.senseHQLocation()) > 4){
+				rc.broadcast(pastureChannel, rc.readBroadcast(pastureChannel) + 1);
+				rc.construct(RobotType.PASTR);
+			} else if(rc.canMove(moveDir)){
 				rc.move(moveDir);
-			} else {
-				//rc.construct(RobotType.PASTR);
-				if(rc.senseRobotCount() > 5){
-					rc.selfDestruct();
-				}
-			}
+			} 
+		senseNearbyCows(rc);
 		}
 	}
 	
+	private static void senseNearbyCows(RobotController rc) throws GameActionException{
+		int cowChannel = 4000;
+		int cowLocChannel = 4001;
+		for(MapLocation nearby:MapLocation.getAllMapLocationsWithinRadiusSq(rc.getLocation(), 35)){
+			int cows = (int)rc.senseCowsAtLocation(nearby);
+			if (cows > rc.readBroadcast(cowChannel)){
+				rc.broadcast(cowChannel, cows);
+				rc.broadcast(cowLocChannel, nearby.x * 100 + nearby.y);
+				//TODO vector function that shit
+			}
+		}
+		rc.setIndicatorString(0, ""+rc.readBroadcast(cowLocChannel));
+	}
+	
 	private static void runHQ(RobotController rc) throws GameActionException{
-		
+		rc.broadcast(4000, 0);
 		Combat.HQAttack(rc);
-		rc.setIndicatorString(0, ""+rc.getType().attackRadiusMaxSquared);
 		Direction spawnDir = Direction.NORTH;
 		if(rc.isActive() && rc.canMove(spawnDir) && rc.senseRobotCount() < GameConstants.MAX_ROBOTS){
 			rc.spawn(spawnDir);
