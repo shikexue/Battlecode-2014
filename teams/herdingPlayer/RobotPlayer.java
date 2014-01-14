@@ -298,8 +298,8 @@ boolean taskSet = false;
 			}
 		}
 		rc.broadcast(bestPastrChan, VectorFunctions.locToInt(bestAllyPastr));
-		rc.setIndicatorString(0, bestAllyPastr + " " + bestTarget);
-		return BugMove.mergePath(BugMove.generateBugPath(bestAllyPastr, bestTarget, rc));
+		rc.setIndicatorString(1, bestAllyPastr + " " + bestTarget);
+		return BugMove.mergePath(BugMove.generateBugPath(bestAllyPastr, bestTarget, rc, VectorFunctions.intToLoc(rc.readBroadcast(towerLocChan)), 361));
 		//for(int i = 0; i < 10; i++){
 		//	path = BugMove.simplefyPath(path);
 		//}
