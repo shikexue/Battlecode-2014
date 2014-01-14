@@ -108,7 +108,7 @@ boolean taskSet = false;
 	 */
 	private static void runTower(ArrayList<MapLocation >path) throws GameActionException{
 		if(rc.isActive()){
-			BugMove.shootPath(path, towerGetPathChan);
+			BugMove.shootPath(path, towerGetPathChan, bestPastrChan);
 		}
 	}
 	
