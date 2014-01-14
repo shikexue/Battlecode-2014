@@ -11,7 +11,7 @@ import battlecode.common.*;
  */
 
 public class Combat {
-	public static void runCombat(RobotController rc, boolean standAndFight) throws GameActionException{
+	/*public static void runCombat(RobotController rc, boolean standAndFight) throws GameActionException{
 		RobotInfo thisStatus =  rc.senseRobotInfo(rc.getRobot());
 		MapLocation suicideSpot;
 		Robot[] enemyRobots = rc.senseNearbyGameObjects(Robot.class,10000,rc.getTeam().opponent());
@@ -32,7 +32,7 @@ public class Combat {
 				attackWeakest();
 			}
 		}
-	}
+	}*/
 	
 	private static int suicideUtil(RobotController rc, RobotInfo[] enemyStatus,RobotInfo thisStatus) {
 		int[][] target = {{0, 0, 0},

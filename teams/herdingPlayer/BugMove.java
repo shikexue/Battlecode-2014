@@ -37,7 +37,7 @@ public class BugMove {
 		pastPos.add(start);
 		STATE state = STATE.CLEAR;
 		MapLocation startBugLoc = null;
-		while(!pos.equals(destination)&&pastPos.size() < 150){
+		while(!pos.equals(destination)&&pastPos.size() < 100){
 			//rc.setIndicatorString(0, ""+path);
 			//rc.setIndicatorString(2, ""+state);
 			Direction desiredDir = pos.directionTo(destination);
@@ -97,7 +97,7 @@ public class BugMove {
 		pastPos.add(start);
 		STATE state = STATE.CLEAR;
 		MapLocation startBugLoc = null;
-		while(!pos.equals(destination)&&pastPos.size()<150){
+		while(!pos.equals(destination)&&pastPos.size()<200){
 			//rc.setIndicatorString(0, ""+path);
 			//rc.setIndicatorString(2, ""+state);
 			Direction desiredDir = pos.directionTo(destination);
