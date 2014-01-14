@@ -105,7 +105,7 @@ public class Combat {
 					}
 				}
 			}
-			if(newTarget != null){
+			if(newTarget != null && rc.canAttackSquare(newTarget)){
 				rc.attackSquare(newTarget);
 			}
 		}

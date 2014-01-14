@@ -107,7 +107,7 @@ public class RobotPlayer {
 		rc.setIndicatorString(1, "" + rc.readBroadcast(makePastrChan));
 		rc.broadcast(rallySwarmSizeChan, 0); //
 		tryToSpawn();
-		
+		Combat.HQAttack(rc);
 	}
 
 
@@ -209,12 +209,27 @@ public class RobotPlayer {
 						rc.broadcast(rallySwarmMove, 1);
 					} if(rc.readBroadcast(rallySwarmMove) == 1){
 						MapLocation[] enemyPastrs = rc.sensePastrLocations(rc.getTeam().opponent());
+						if (enemyPastrs.length > 0){
 						goal = enemyPastrs[0];
+						}
+						else {
+							goal = rc.senseEnemyHQLocation();
+						}
 						path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
 						rc.broadcast(rallySwarmHasMoved, rc.readBroadcast(rallySwarmHasMoved) + 1);
 						if(rc.readBroadcast(rallySwarmHasMoved) >= 3){
 							rc.broadcast(rallySwarmMove, 0);
 							rc.broadcast(rallySwarmSizeChan, 0);
+						}
+					}
+					rc.setIndicatorString(0, ""+rc.readBroadcast(rallySwarmSizeChan));
+					rc.setIndicatorString(1, ""+rc.readBroadcast(rallySwarmMove));
+					rc.setIndicatorString(2, ""+rc.readBroadcast(rallySwarmHasMoved));
+					Robot[] nearbyEnemies = rc.senseNearbyGameObjects(Robot.class,10,rc.getTeam().opponent());
+					for(Robot enemy:nearbyEnemies){
+						RobotInfo robotInfo = rc.senseRobotInfo(enemy);
+						if(rc.isActive() && rc.canAttackSquare(robotInfo.location)){
+							rc.attackSquare(robotInfo.location);
 						}
 					}
 					break;
