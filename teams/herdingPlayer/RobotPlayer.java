@@ -212,7 +212,6 @@ public class RobotPlayer {
 						MapLocation[] enemyPastrs = rc.sensePastrLocations(rc.getTeam().opponent());
 						goal = enemyPastrs[0];
 						path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
-						rc.broadcast(rallySwarmMove, 0);
 					}
 					break;
 				default:
