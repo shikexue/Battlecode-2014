@@ -263,10 +263,12 @@ public class BugMove {
 	}
 
 	//shoots to move cows along path
-	public static void shootPath(ArrayList<MapLocation> pathToFollow, int towerGetPathChan, int bestPastrChan) throws GameActionException{
+	public static void shootPath(ArrayList<MapLocation> pathToFollow, int towerGetPathChan, int bestPastrChan, int towerShootLocChan) throws GameActionException{
+		//TODO instead of passing the channel numbers have those in constants file.
 		if(placeOnPath < pathToFollow.size()-1 && VectorFunctions.locToInt(pathToFollow.get(placeOnPath)) != rc.readBroadcast(bestPastrChan)){
 			MapLocation toShoot = pathToFollow.get(placeOnPath).add(pathToFollow.get(placeOnPath + 1).directionTo(pathToFollow.get(placeOnPath)));
 			if(rc.getLocation().distanceSquaredTo(toShoot) <= rc.getType().attackRadiusMaxSquared){
+				rc.broadcast(towerShootLocChan, VectorFunctions.locToInt(toShoot));
 				rc.attackSquareLight(toShoot);
 			} else {
 				rc.broadcast(towerGetPathChan, 0); //TODO: broadcasting here
@@ -284,7 +286,10 @@ public class BugMove {
 			int forwardInt = desiredDir.ordinal();
 			Direction trialDir = allDirections[(forwardInt+directionalOffset+8)%8];
 			if(rc.canMove(trialDir)&&rc.isActive()){
-				rc.move(trialDir);
+				if(rc.getLocation().distanceSquaredTo(VectorFunctions.intToLoc(rc.readBroadcast(4004))) > 16)
+					rc.move(trialDir);
+				else
+					rc.sneak(trialDir);
 			}
 		}
 	}
