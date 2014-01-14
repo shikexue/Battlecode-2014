@@ -1,13 +1,49 @@
 package swarmer;
 
-import battlecode.common.GameActionException;
-import battlecode.common.GameConstants;
-import battlecode.common.MapLocation;
-import battlecode.common.Robot;
-import battlecode.common.RobotController;
-import battlecode.common.RobotType;
+import battlecode.common.*;
+
+/* Priorities:
+ * Attack weakest unit
+ * If outgunned (>50% health) and not defending, retreat
+ * If outgunned and defending, suicide
+ * If going to die (>20% health, suicide)
+ * If can kill one robot with >= health, suicide
+ */
 
 public class Combat {
+	public static void runCombat(RobotController rc, boolean standAndFight) throws GameActionException{
+		RobotInfo thisStatus =  rc.senseRobotInfo(rc.getRobot());
+		MapLocation suicideSpot;
+		Robot[] enemyRobots = rc.senseNearbyGameObjects(Robot.class,10000,rc.getTeam().opponent());
+		RobotInfo[] enemyStatus = new RobotInfo[enemyRobots.length];
+		int suicideUtil = suicideUtil(rc, enemyStatus, thisStatus);
+		for(int i=0;i<enemyRobots.length;i++){
+			Robot anEnemy = enemyRobots[i];
+			enemyStatus[i] = rc.senseRobotInfo(anEnemy);
+		}
+		boolean damaged = (thisStatus.health < 50.0);
+		if(enemyRobots.length > 0){
+			if(thisStatus.health < 20||worthDeath(rc, enemyStatus, thisStatus)||(damaged&&standAndFight)){
+				suicideSpot = findIdealDeathLocation();
+				kamikaze(rc, suicideSpot);
+			} else if(damaged){
+				retreat();
+			} else {
+				attackWeakest();
+			}
+		}
+	}
+	
+	private static int suicideUtil(RobotController rc, RobotInfo[] enemyStatus,RobotInfo thisStatus) {
+		int[][] target = {{0, 0, 0},
+						  {0, 0, 0},
+						  {0, 0, 0}};
+		//these are the squares that will be hit if the robot explodes now
+		
+		return 0;
+	}
+
+	
 	public static void kamikaze(RobotController rc, MapLocation m) throws GameActionException{
 		//If specific conditions are met, kamikaze is better than normal fighting.
 		//Kamikaze is always preferable when it will at least trade 1 for 1 and

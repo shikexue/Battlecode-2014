@@ -48,6 +48,9 @@ public class RobotPlayer{
 		//bugMove(rc.senseEnemyHQLocation());
 	}
 	
+	private static void combat() throws GameActionException {
+		
+	}
 	
 
 	private static void runHeadquarters() throws GameActionException {
@@ -55,10 +58,13 @@ public class RobotPlayer{
 		if(rc.isActive()&&rc.canMove(spawnDir)&&rc.senseRobotCount()<GameConstants.MAX_ROBOTS){
 			rc.spawn(spawnDir);
 		}
+		int attackChannel = 6000;
 		
+		/*
 		int editingChannel = (Clock.getRoundNum()%2);
 		int usingChannel = ((Clock.getRoundNum()+1)%2);
 		rc.broadcast(editingChannel, 0);
-		rc.broadcast(editingChannel+2, 0);
+		rc.broadcast(editingChannel+2, 0);*/
 	}
+	
 }
