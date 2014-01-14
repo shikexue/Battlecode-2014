@@ -32,7 +32,8 @@ boolean taskSet = false;
 	static int cowChannel = 4000;
 	static int cowLocChannel = 4001;
 	static int towerGetPathChan = 4002; //TODO: make this an array so we can have 1+ tower?
-	
+	static int towerLocChan = 4003; //TODO: same as above, allow for 1+ tower
+	static int bestPastrChan = 4005;
 	
 	//next used channel should start with 11
 	
@@ -74,7 +75,10 @@ boolean taskSet = false;
 					//TODO: fix broadcasting
 					//TODO: work with path
 					if((path == null || rc.readBroadcast(towerGetPathChan) == 0) && rc.sensePastrLocations(rc.getTeam()).length > 0){
+						rc.setIndicatorString(0, "pathing");
 						myData.path = getTowerPath(rc);						
+					} else {
+						rc.setIndicatorString(0, "no new path");
 					}
 					runTower(myData.getPath());
 				}
@@ -165,6 +169,8 @@ boolean taskSet = false;
 			rc.broadcast(pastrBeingMadeChan, pastrsBeingMade + 1);
 
 		}
+		//try to sense cows before movement
+		senseNearbyCows(rc); //TODO: is this too expensive?
 		
 		//if robot is active, move or perform task
 		if (rc.isActive()){
@@ -184,6 +190,7 @@ boolean taskSet = false;
 					rc.construct(RobotType.NOISETOWER);
 					rc.broadcast(makeNoisetowerChan, noisetowersToMake-1);
 					rc.broadcast(noisetowerBeingMadeChan, noisetowersBeingMade - 1);
+					rc.broadcast(towerLocChan, VectorFunctions.locToInt(rc.getLocation()));
 					//taskSet = false;
 					break;
 				case ATTACKING:
@@ -196,7 +203,6 @@ boolean taskSet = false;
 				default:
 
 				}
-				senseNearbyCows(rc); //TODO: is this too expensive?
 			}
 			// if not already at goal, move towards goal
 			// TODO: allow interruptions
@@ -262,11 +268,17 @@ boolean taskSet = false;
 	private static void senseNearbyCows(RobotController rc) throws GameActionException{
 		for(MapLocation nearby:MapLocation.getAllMapLocationsWithinRadiusSq(rc.getLocation(), 35)){
 			int cows = (int)rc.senseCowsAtLocation(nearby);
-			if (cows > rc.readBroadcast(cowChannel)){
-				rc.broadcast(cowChannel, cows);
-				rc.broadcast(cowLocChannel, nearby.x * 100 + nearby.y);
-				//TODO vector function that shit					   
-
+			if (cows > rc.readBroadcast(cowChannel) && nearby.distanceSquaredTo(VectorFunctions.intToLoc(rc.readBroadcast(towerLocChan))) <= 361){
+				boolean farPasture = true;
+				for(MapLocation allyPasture:rc.sensePastrLocations(rc.getTeam())){
+					if (nearby.distanceSquaredTo(allyPasture) < GameConstants.PASTR_RANGE)
+						farPasture = false;
+				}
+				if (farPasture){
+					rc.broadcast(cowChannel, cows);
+					rc.broadcast(cowLocChannel, VectorFunctions.locToInt(nearby));
+				}
+				//TODO vector function that shit
 			}
 		}
 		rc.setIndicatorString(0, ""+rc.readBroadcast(cowLocChannel));
@@ -274,10 +286,20 @@ boolean taskSet = false;
 	
 	private static ArrayList<MapLocation> getTowerPath(RobotController rc) throws GameActionException{
 		MapLocation[] allyPastrLocs = rc.sensePastrLocations(rc.getTeam());
-		MapLocation bestTarget = new MapLocation(rc.readBroadcast(cowLocChannel)/100,rc.readBroadcast(cowLocChannel)%100);
-		rc.setIndicatorString(9, ""+bestTarget);
-		rc.broadcast(towerGetPathChan, 1);
-		return BugMove.mergePath(BugMove.generateBugPath(allyPastrLocs[0], bestTarget, rc));
+		MapLocation bestTarget = VectorFunctions.intToLoc(rc.readBroadcast(4001));
+		rc.broadcast(cowChannel, 0); //reset cow channel for next sensing
+		rc.broadcast(towerGetPathChan, 1); //set channel for having found a path
+		MapLocation bestAllyPastr = allyPastrLocs[0];
+		int bestDistance = bestAllyPastr.distanceSquaredTo(bestTarget);
+		for(int i = 1; i < allyPastrLocs.length; i++){
+			if(allyPastrLocs[i].distanceSquaredTo(bestTarget) < bestDistance){
+				bestAllyPastr = allyPastrLocs[i];
+				bestDistance = allyPastrLocs[i].distanceSquaredTo(bestTarget);
+			}
+		}
+		rc.broadcast(bestPastrChan, VectorFunctions.locToInt(bestAllyPastr));
+		rc.setIndicatorString(0, bestAllyPastr + " " + bestTarget);
+		return BugMove.mergePath(BugMove.generateBugPath(bestAllyPastr, bestTarget, rc));
 		//for(int i = 0; i < 10; i++){
 		//	path = BugMove.simplefyPath(path);
 		//}
