@@ -107,7 +107,9 @@ boolean taskSet = false;
 	 * Runs the noise towers; currently, just shoot in path
 	 */
 	private static void runTower(ArrayList<MapLocation >path) throws GameActionException{
-		BugMove.shootPath(path, towerGetPathChan);
+		if(rc.isActive()){
+			BugMove.shootPath(path, towerGetPathChan);
+		}
 	}
 	
 	/*
@@ -272,6 +274,10 @@ boolean taskSet = false;
 				boolean farPasture = true;
 				for(MapLocation allyPasture:rc.sensePastrLocations(rc.getTeam())){
 					if (nearby.distanceSquaredTo(allyPasture) < GameConstants.PASTR_RANGE)
+						farPasture = false;
+				}
+				for(MapLocation enemyPasture:rc.sensePastrLocations(rc.getTeam().opponent())){
+					if (nearby.distanceSquaredTo(enemyPasture) < GameConstants.PASTR_RANGE)
 						farPasture = false;
 				}
 				if (farPasture){

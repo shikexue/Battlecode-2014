@@ -61,7 +61,9 @@ public class RobotPlayer {
 	}
 	
 	private static void runTower(RobotController rc, ArrayList<MapLocation >path) throws GameActionException{
-		BugMove.shootPath(path);
+		if(rc.isActive()){
+			BugMove.shootPath(path);
+		}
 	}
 	
 	
@@ -76,6 +78,8 @@ public class RobotPlayer {
 		}
 		//rc.sense
 		if(rc.isActive()){
+			senseTowerCows(rc);
+			
 			Direction moveDir = directions[rand.nextInt(8)];
 			int towerChannel = 1000;
 			int pastureChannel = 2000;
@@ -91,7 +95,6 @@ public class RobotPlayer {
 			} else if(rc.canMove(moveDir)){
 				rc.sneak(moveDir);
 			} 
-		senseTowerCows(rc);
 		}
 	}
 	
