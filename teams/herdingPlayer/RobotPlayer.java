@@ -38,7 +38,7 @@ public class RobotPlayer {
 	static int rallyLocChan = 5001;
 	static int rallySwarmSizeChan = 5002;
 	static int rallySwarmMove = 5003;
-	static int swarmNum = 5004;
+	static int rallySwarmHasMoved = 5004;
 	//next used channel should start with 11
 	
 	/*
@@ -207,11 +207,15 @@ public class RobotPlayer {
 					rc.broadcast(rallySwarmSizeChan, rc.readBroadcast(rallySwarmSizeChan) + 1);
 					if(rc.readBroadcast(rallySwarmSizeChan) >= 3){
 						rc.broadcast(rallySwarmMove, 1);
-						rc.broadcast(swarmNum, rc.readBroadcast(swarmNum) + 1);
 					} if(rc.readBroadcast(rallySwarmMove) == 1){
 						MapLocation[] enemyPastrs = rc.sensePastrLocations(rc.getTeam().opponent());
 						goal = enemyPastrs[0];
 						path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
+						rc.broadcast(rallySwarmHasMoved, rc.readBroadcast(rallySwarmHasMoved) + 1);
+						if(rc.readBroadcast(rallySwarmHasMoved) >= 3){
+							rc.broadcast(rallySwarmMove, 0);
+							rc.broadcast(rallySwarmSizeChan, 0);
+						}
 					}
 					break;
 				default:
