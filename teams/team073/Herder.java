@@ -1,4 +1,4 @@
-package herdingPlayer;
+package team073;
 
 import battlecode.common.*;
 
@@ -29,13 +29,13 @@ public class Herder{
 	 * @numPastrs: number of pastrs in returned list
 	 * @int distToHQ: 
 	 */
-	public MapLocation[] getGoodPastrLocation(int numPastrs, int distToHQ){
+//	public MapLocation[] getGoodPastrLocation(int numPastrs, int distToHQ){
 		
 		// iterating through 
-		for (int x = 0; x < coarseCowinessMap.length; x++){
-			for (int y = 0; y < coarseCowinessMap[0].length; y++){
+//		for (int x = 0; x < coarseCowinessMap.length; x++){
+//			for (int y = 0; y < coarseCowinessMap[0].length; y++){
 				
-			}
-		}
-	}
+//			}
+//		}
+//	}
 }

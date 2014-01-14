@@ -102,7 +102,7 @@ public class BugMove {
 		pastPos.add(start);
 		STATE state = STATE.CLEAR;
 		MapLocation startBugLoc = null;
-		while(!pos.equals(destination)&&pastPos.size()<200){
+		while(!pos.equals(destination)&&pastPos.size()<150){
 			//rc.setIndicatorString(0, ""+path);
 			//rc.setIndicatorString(2, ""+state);
 			Direction desiredDir = pos.directionTo(destination);
@@ -291,7 +291,22 @@ public class BugMove {
 	}
 
 	//shoots to move cows along path
-	
+	public static void shootPath(ArrayList<MapLocation> pathToFollow, int towerGetPathChan, int bestPastrChan, int towerShootLocChan) throws GameActionException{
+		//TODO instead of passing the channel numbers have those in constants file.
+		if(placeOnPath < pathToFollow.size()-1 && VectorFunctions.locToInt(pathToFollow.get(placeOnPath)) != rc.readBroadcast(bestPastrChan)){
+			MapLocation toShoot = pathToFollow.get(placeOnPath).add(pathToFollow.get(placeOnPath + 1).directionTo(pathToFollow.get(placeOnPath)));
+			if(rc.getLocation().distanceSquaredTo(toShoot) <= rc.getType().attackRadiusMaxSquared){
+				rc.broadcast(towerShootLocChan, VectorFunctions.locToInt(toShoot));
+				rc.attackSquareLight(toShoot);
+			} else {
+				rc.broadcast(towerGetPathChan, 0); //TODO: broadcasting here
+			}
+			//rc.setIndicatorString(2, "" + pathToFollow.get(placeOnPath));
+			placeOnPath++;
+		} else {
+			rc.broadcast(towerGetPathChan, 0); //TODO: broadcasting here
+		}
+	}
 	//Moves toward target 
 	public static void simpleMoveTo(MapLocation desiredPos) throws GameActionException {
 		Direction desiredDir = rc.getLocation().directionTo(desiredPos);
@@ -299,7 +314,10 @@ public class BugMove {
 			int forwardInt = desiredDir.ordinal();
 			Direction trialDir = allDirections[(forwardInt+directionalOffset+8)%8];
 			if(rc.canMove(trialDir)&&rc.isActive()){
+				if(rc.getLocation().distanceSquaredTo(VectorFunctions.intToLoc(rc.readBroadcast(4004))) > 16)
 					rc.move(trialDir);
+				else
+					rc.sneak(trialDir);
 			}
 		}
 	}
@@ -316,5 +334,17 @@ public class BugMove {
 	}
 
 
+		public static boolean closeEnoughForTask(Constants.Task task, MapLocation destination, MapLocation currentPos){
+			HashMap<Constants.Task, Integer> taskLeeway = new HashMap<Constants.Task, Integer>();
+			taskLeeway.put(Constants.Task.HERDING, 0);
+			taskLeeway.put(Constants.Task.ATTACKING, 10); 
+			taskLeeway.put(Constants.Task.DEFENDING, 1);
+			taskLeeway.put(Constants.Task.PASTRMAKING, 0);
+			taskLeeway.put(Constants.Task.TOWERMAKING,0);
+			if(taskLeeway.get(task) <= destination.distanceSquaredTo(currentPos)){
+				return true;
+			}
+			return false;
+		}
 
 	}

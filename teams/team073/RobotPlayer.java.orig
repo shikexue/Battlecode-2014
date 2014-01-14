@@ -1,4 +1,5 @@
-package herdingPlayer;
+package team073;
+
 
 import battlecode.common.*;
 
@@ -10,39 +11,30 @@ import herdingPlayer.Constants;
 import herdingPlayer.RobotData;
 
 public class RobotPlayer {
+
+
 	static RobotController rc;
 	static Random randall = new Random();
 	static Direction allDirections[] = Direction.values();
 
 	static MapLocation pastrLoc;
-	static int noisetowerCount;
-	
-	boolean taskSet = false;
-	
-	static int pastrsOrderedThisTurn = 0; //TODO: THIS MUST BE RESET AT THE BEGINNING OF EVERY TURN
-	
-	static int pastrBeingMadeChan = 0;
-	static int makePastrChan = 1; //channel will have -1 if no pastures ordered
-	static int makePastrLocChan[] = new int[]{2,3,4,20};
-	
-	static int noisetowersOrderedThisTurn = 0; //TODO: THIS MUST BE RESET AT THE BEGINNING OF EVERY TURN
-	
-	static int noisetowerBeingMadeChan = 5;
-	static int makeNoisetowerChan = 6;
-	static int makeNoisetowerLocChan[] = new int[]{7,8,9};	
 
+	// defining channels
+	static int pastrBeingMadeChan = 0;
+	static int makePastrChan = 1; //channel will have 0 if no pastures ordered
+	static int makePastrLocChan[] = new int[]{2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22};
+	
+boolean taskSet = false;
+	
+	static int noisetowerBeingMadeChan = 23;
+	static int makeNoisetowerChan = 24;
+	static int makeNoisetowerLocChan[] = new int[]{25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45};
+	
 	static int cowChannel = 4000;
 	static int cowLocChannel = 4001;
 	static int towerGetPathChan = 4002; //TODO: make this an array so we can have 1+ tower?
-	static int towerLocChan = 4003; //TODO: same as above, allow for 1+ tower
-	static int towerShootLocChan = 4004;
-	static int bestPastrChan = 4005;
 	
-	static int foundRallyChan = 5000;
-	static int rallyLocChan = 5001;
-	static int rallySwarmSizeChan = 5002;
-	static int rallySwarmMove = 5003;
-	static int rallySwarmHasMoved = 5004;
+	
 	//next used channel should start with 11
 	
 	/*
@@ -50,42 +42,50 @@ public class RobotPlayer {
 	 */
 	public static void run(RobotController rcIn) {
 		try{
+<<<<<<< HEAD
+
+=======
+>>>>>>> asyastoolazytomerge
 			rc = rcIn;
 			Constants.Task task = Constants.Task.ATTACKING; // default task
-			//If the rally point has yet to be set, set it to the default of a third of the way to
-			//the enemy HQ.
-			if(rc.readBroadcast(foundRallyChan) == 0){
-				ArrayList<MapLocation> pathToEnemyHQ = BugMove.generateBugPath(rc.senseEnemyHQLocation(), rc.getLocation(), rc);
-				rc.broadcast(rallyLocChan, VectorFunctions.locToInt(pathToEnemyHQ.get(pathToEnemyHQ.size()/3)));
-				rc.broadcast(foundRallyChan, 1);
-			}
-			MapLocation goal = VectorFunctions.intToLoc(rc.readBroadcast(rallyLocChan)); // default goal
+			MapLocation goal = rc.senseEnemyHQLocation(); // default goal
+
 			ArrayList<MapLocation> path = BugMove.generateBugPath(goal, rc.getLocation(), rc, goal, 100000);
 			boolean taskSet = false;
+
 			RobotData myData = new RobotData(task, goal, path, taskSet);
+
 
 			// initialize channels and then make first noisetower and pastr
 			if (rc.getType()==RobotType.HQ){
-				noisetowerCount = 0;
 				rc.broadcast(makeNoisetowerChan, 0);
 				rc.broadcast(noisetowerBeingMadeChan, 0);
 				rc.broadcast(makePastrChan, 0);
 				rc.broadcast(pastrBeingMadeChan, 0);
 				rc.yield();
+<<<<<<< HEAD
+				tryToSpawn();
+			}
+			// if pastr has been made, decrement appropriate channel so hq doesn't double-count
+			else if (rc.getType()==RobotType.PASTR){
+				rc.broadcast(pastrBeingMadeChan, rc.readBroadcast(pastrBeingMadeChan)-1);
+=======
 				sendMakeNearbyPastrCommand(5);
+//				sendMakeNearbyPastrCommand(5);
 				sendMakeDefensiveNoisetowerCommand();
-				sendMakeNearbyPastrCommand(5);
-				sendMakeDefensiveNoisetowerCommand();
-				sendMakeNearbyPastrCommand(5);
-				sendMakeDefensiveNoisetowerCommand();
-				sendMakeNearbyPastrCommand(5);
-
-//				sendMakeDefensiveNoisetowerCommand(4);
+>>>>>>> asyastoolazytomerge
 			}
 			
 			// splitting up behavior based on robot type
 			while(true){
 				if(rc.getType()==RobotType.HQ){
+<<<<<<< HEAD
+
+					runHQ();
+				}else if(rc.getType()==RobotType.SOLDIER){
+					// to store data like task, goal, path between rounds, have runFoo return them for soldiers, pastrs, towers
+					myData = runSoldier(myData.getTask(), myData.getPath(), myData.getGoal());
+=======
 					runHQ();
 				}else if(rc.getType()==RobotType.SOLDIER){
 					// to store data like task, goal, path between rounds, have runFoo return them for soldiers, pastrs, towers
@@ -94,12 +94,10 @@ public class RobotPlayer {
 					//TODO: fix broadcasting
 					//TODO: work with path
 					if((path == null || rc.readBroadcast(towerGetPathChan) == 0) && rc.sensePastrLocations(rc.getTeam()).length > 0){
-						rc.setIndicatorString(0, "pathing");
-						myData.path = getTowerPath(rc);
-					} else {
-						rc.setIndicatorString(0, "no new path");
+						myData.path = getTowerPath(rc);						
 					}
 					runTower(myData.getPath());
+>>>>>>> asyastoolazytomerge
 				}
 
 
@@ -116,9 +114,21 @@ public class RobotPlayer {
 	{
 		rc.setIndicatorString(0, "" + rc.readBroadcast(makeNoisetowerChan));
 		rc.setIndicatorString(1, "" + rc.readBroadcast(makePastrChan));
-		rc.broadcast(rallySwarmSizeChan, 0); //
+		
+<<<<<<< HEAD
+		// trying to make 2 pastrs
+		int pastrBeingMade = rc.readBroadcast(pastrBeingMadeChan);
+		int pastrAlreadyMade = rc.sensePastrLocations(rc.getTeam()).length; 
+		int pastrUnansweredCommands = rc.readBroadcast(makePastrChan) + 1; // no commands sent when -1
+		if(pastrBeingMade + pastrAlreadyMade + pastrUnansweredCommands < 2 ){
+			sendMakeNearbyPastrCommand(5);
+			rc.yield();
+		}
+
+=======
+>>>>>>> asyastoolazytomerge
 		tryToSpawn();
-		Combat.HQAttack(rc);
+		
 	}
 
 
@@ -126,9 +136,7 @@ public class RobotPlayer {
 	 * Runs the noise towers; currently, just shoot in path
 	 */
 	private static void runTower(ArrayList<MapLocation >path) throws GameActionException{
-		if(rc.isActive()){
-			BugMove.shootPath(path, towerGetPathChan, bestPastrChan, towerShootLocChan);
-		}
+		BugMove.shootPath(path, towerGetPathChan);
 	}
 	
 	/*
@@ -161,16 +169,45 @@ public class RobotPlayer {
 		int pastrsToMake = rc.readBroadcast(makePastrChan);
 		int pastrsBeingMade = rc.readBroadcast(pastrBeingMadeChan);
 
+<<<<<<< HEAD
+		//if there is a command sent out to make a pastr, make one 
+		int lastPastrNum = rc.readBroadcast(makePastrChan);
+		if (lastPastrNum > -1  && task != Constants.Task.PASTRMAKING){
+
+			rc.setIndicatorString(0,"makePastrChan is " + lastPastrNum);
+			goal = VectorFunctions.intToLoc(rc.readBroadcast(makePastrLocChan[lastPastrNum]));
+			path = BugMove.generateBugPath(goal, rc.getLocation(), rc, goal, 100000);
+			task = Constants.Task.PASTRMAKING;
+=======
 		int noisetowersToMake = rc.readBroadcast(makeNoisetowerChan);
 		int noisetowersBeingMade = rc.readBroadcast(noisetowerBeingMadeChan);
+>>>>>>> asyastoolazytomerge
 
 
+<<<<<<< HEAD
+			//decrement makePastrChan so other robots don't try to make the same pastr
+			rc.broadcast(makePastrChan, lastPastrNum-1);
+
+		}
+=======
 		rc.setIndicatorString(1, "" +  pastrsToMake + " " + pastrsBeingMade + " " + noisetowersToMake + " " + noisetowersBeingMade);
+>>>>>>> asyastoolazytomerge
 
-		//if there is a noisetower to make that isn't being made, make one		
+		//if there is a noisetower to make that isn't being made, make one
+		if(taskSet == false && noisetowersToMake > 0 && noisetowersBeingMade < noisetowersToMake){
+			goal = VectorFunctions.intToLoc(rc.readBroadcast(makeNoisetowerLocChan[noisetowersToMake]));
+			rc.setIndicatorString(1, "" + goal.x + " " + goal.y);
+			path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
+						
+			task = Constants.Task.TOWERMAKING;
+
+			taskSet = true;
+			rc.broadcast(noisetowerBeingMadeChan, noisetowersBeingMade + 1);
+		}
+		
 		//if there is a pastr to make that isn't being made, make one
 		if (taskSet == false && pastrsToMake > 0 && pastrsBeingMade < pastrsToMake){
-			goal = VectorFunctions.intToLoc(rc.readBroadcast(makePastrLocChan[pastrsToMake-1]));
+			goal = VectorFunctions.intToLoc(rc.readBroadcast(makePastrLocChan[pastrsToMake]));
 			path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
 			
 			task = Constants.Task.PASTRMAKING;
@@ -180,23 +217,10 @@ public class RobotPlayer {
 
 		}
 		
-		if(taskSet == false && noisetowersToMake > 0 && noisetowersBeingMade < noisetowersToMake){
-			goal = VectorFunctions.intToLoc(rc.readBroadcast(makeNoisetowerLocChan[noisetowersToMake-1]));
-			path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
-						
-			task = Constants.Task.TOWERMAKING;
-
-			taskSet = true;
-			rc.broadcast(noisetowerBeingMadeChan, noisetowersBeingMade + 1);
-		}
-
-		//try to sense cows before movement
-		senseNearbyCows(rc); //TODO: is this too expensive?
-		
 		//if robot is active, move or perform task
 		if (rc.isActive()){
 			//if have reached goal, perform designated task
-			if (nearEnoughToGoal(task, goal)){
+			if (rc.getLocation().equals(goal)){
 				//rc.setIndicatorString(1, "completing Task");
 				switch (task){
 				case PASTRMAKING:
@@ -209,121 +233,67 @@ public class RobotPlayer {
 				case TOWERMAKING:
 					rc.setIndicatorString(1,"making tower");
 					rc.construct(RobotType.NOISETOWER);
-
 					rc.broadcast(makeNoisetowerChan, noisetowersToMake-1);
 					rc.broadcast(noisetowerBeingMadeChan, noisetowersBeingMade - 1);
-					rc.broadcast(towerLocChan, VectorFunctions.locToInt(rc.getLocation()));
 					//taskSet = false;
 					break;
 				case ATTACKING:
-					rc.broadcast(rallySwarmSizeChan, rc.readBroadcast(rallySwarmSizeChan) + 1);
-					if(rc.readBroadcast(rallySwarmSizeChan) >= 3){
-						rc.broadcast(rallySwarmMove, 1);
-					} if(rc.readBroadcast(rallySwarmMove) == 1){
-						MapLocation[] enemyPastrs = rc.sensePastrLocations(rc.getTeam().opponent());
-						if (enemyPastrs.length > 0){
-						goal = enemyPastrs[0];
-						}
-						else {
-							goal = rc.senseEnemyHQLocation();
-						}
-						path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
-						rc.broadcast(rallySwarmHasMoved, rc.readBroadcast(rallySwarmHasMoved) + 1);
-						if(rc.readBroadcast(rallySwarmHasMoved) >= 3){
-							rc.broadcast(rallySwarmMove, 0);
-							rc.broadcast(rallySwarmSizeChan, 0);
-							rc.broadcast(rallySwarmHasMoved, 0);
-						}
-					}
-					rc.setIndicatorString(0, ""+rc.readBroadcast(rallySwarmSizeChan));
-					rc.setIndicatorString(1, ""+rc.readBroadcast(rallySwarmMove));
-					rc.setIndicatorString(2, ""+rc.readBroadcast(rallySwarmHasMoved));
 					Robot[] nearbyEnemies = rc.senseNearbyGameObjects(Robot.class,10,rc.getTeam().opponent());
-					for(Robot enemy:nearbyEnemies){
-						RobotInfo robotInfo = rc.senseRobotInfo(enemy);
-						if(rc.isActive() && rc.canAttackSquare(robotInfo.location)){
-							rc.attackSquare(robotInfo.location);
-						}
+					if (nearbyEnemies.length > 0) {
+						RobotInfo robotInfo = rc.senseRobotInfo(nearbyEnemies[0]);
+						rc.attackSquare(robotInfo.location);
 					}
 					break;
 				default:
 
 				}
+				senseNearbyCows(rc); //TODO: is this too expensive?
 			}
 			// if not already at goal, move towards goal
 			// TODO: allow interruptions
 			else{
 				rc.setIndicatorString(1, "followingPath");
-				Robot[] nearbyEnemies = rc.senseNearbyGameObjects(Robot.class,35,rc.getTeam().opponent());
-				if (nearbyEnemies.length > 0) {
-					switch(task){
-					case PASTRMAKING:
-					case TOWERMAKING:
-					default:
-						for(Robot enemy:nearbyEnemies){
-							RobotInfo robotInfo = rc.senseRobotInfo(enemy);
-							if(rc.isActive() && rc.canAttackSquare(robotInfo.location)){
-								rc.attackSquare(robotInfo.location);
-							}
-						}
-						break;
-					case ATTACKING:
-						for(Robot enemy:nearbyEnemies){
-							RobotInfo robotInfo = rc.senseRobotInfo(enemy);
-							if(rc.isActive() && rc.canAttackSquare(robotInfo.location)){
-								rc.attackSquare(robotInfo.location);
-							}
-						}
-					}
-				}
 				BugMove.followPath(path);
 			}
 		}
 
 		return new RobotData(task, goal, path, taskSet);
 	}
-	
-	private static boolean nearEnoughToGoal(Constants.Task task, MapLocation goal){
-		switch(task){
-		case PASTRMAKING:
-		case TOWERMAKING:
-			return rc.getLocation().equals(goal);
-		case ATTACKING:
-			return rc.getLocation().distanceSquaredTo(goal) < 9;
-		default:
-			return rc.getLocation().equals(goal);
-		}
-	}
+
 
 	/*
 	 * HQ sends out broadcast that a PASTR should be made
 	 * @Location: place where PASTR should be made
 	 */
 	private static void sendMakeNearbyPastrCommand(int pastrDistance) throws GameActionException{
-		int currentMakeCount = rc.readBroadcast(makePastrChan) + pastrsOrderedThisTurn;
+		int currentMakeCount = rc.readBroadcast(makePastrChan);
 		int hqX = rc.senseHQLocation().x;
 		int hqY = rc.senseHQLocation().y;
-	
+		
 		pastrLoc = new MapLocation(VectorFunctions.abs(randall.nextInt(2*pastrDistance)-pastrDistance + hqX),VectorFunctions.abs(randall.nextInt(2*pastrDistance)-pastrDistance + hqY));
 
 		// make sure that is not an obstacle 
 		//TODO: try a few times to make sure is a field?
 		while(rc.senseTerrainTile(pastrLoc).ordinal() > 1){ //0 NORMAL, 1 ROAD, 2 VOID, 3 OFF_MAP
-			pastrLoc = new MapLocation(VectorFunctions.abs(randall.nextInt(2*pastrDistance)-pastrDistance + hqX),VectorFunctions.abs(randall.nextInt(2*pastrDistance)-pastrDistance + hqY));		
+			pastrLoc = new MapLocation(randall.nextInt(pastrDistance),randall.nextInt(pastrDistance));
 		}
 
 		//broadcast that a channel should be made, and in desired position
+<<<<<<< HEAD
+		// make sure that position is broadcast before soldiers are tolstr and value is0str and value is0d to read it
+		rc.broadcast(makePastrLocChan[currentMakeCount + 1], VectorFunctions.locToInt(pastrLoc));
+		rc.broadcast(makePastrChan, currentMakeCount + 1);
+		
+=======
 		// make sure that position is broadcast before soldiers are told to read it
-		rc.broadcast(makePastrLocChan[currentMakeCount], VectorFunctions.locToInt(pastrLoc));
+		rc.broadcast(makePastrLocChan[currentMakeCount + 1 ], VectorFunctions.locToInt(pastrLoc));
 		rc.broadcast(makePastrChan, currentMakeCount + 1);	
-		
-		pastrsOrderedThisTurn++;
-		
+>>>>>>> asyastoolazytomerge
 	}
 	
 	//make a defensive noisetower close to the nearest constructed pasture
 	private static void sendMakeDefensiveNoisetowerCommand() throws GameActionException{
-		int currentMakeCount = rc.readBroadcast(makeNoisetowerChan) + noisetowersOrderedThisTurn;
+		int currentMakeCount = rc.readBroadcast(makeNoisetowerChan);
 		
 		//choose a free location adjacent to where your pasture was created	
 		boolean foundLocation = false;
@@ -333,62 +303,88 @@ public class RobotPlayer {
 			for(int j = -1; j <= 1; j++){
 			noisetowerLoc = VectorFunctions.mladd(pastrLoc, new MapLocation(i, j));
 			//make sure noisetower can be placed
-			if((i != 0 || j != 0) && rc.senseTerrainTile(noisetowerLoc).ordinal() <= 1) {
+			if(rc.senseTerrainTile(noisetowerLoc).ordinal() <= 1) {
 				foundLocation = true;
 				break;
-				}
 			}
 			if(foundLocation) break;
-
+			}
 		}
 	
 		//broadcast that a channel should be made, and in desired position
 		// make sure that position is broadcast before soldiers are told to read it
-		rc.broadcast(makeNoisetowerLocChan[currentMakeCount], VectorFunctions.locToInt(noisetowerLoc));
+<<<<<<< HEAD
+		rc.broadcast(makePastrLocChan[currentMakeCount + 1 ], VectorFunctions.locToInt(pastrLocation));
+		rc.broadcast(makePastrChan, currentMakeCount + 1);	
+	}
+	
+	
+
+	/*
+	 * 	finds the best several pastr locations, 
+	 *  where 'best' is defined as the locations within a certain distance from hq that have the highest cow growth rate
+	 *  also only returns locations that are not currently occupied b
+	 * @ distanceDesired - distance radius from hq which is considered
+	 * @ numPastrs - the 'best' n locations are returned, where n = numPastrs
+	 */
+	private MapLocation[] pickCloseFertilePastr(int distanceDesired, int numPastrs) throws GameActionException{
+		   double[][] cowGrowthArray = rc.senseCowGrowth();
+		   MapLocation[] bestPastrs = new MapLocation[numPastrs]; //keeps track of best pastr locaitons, 0 is best
+		   double[] bestCows = new double[numPastrs]; // keeps track of cow growth rate at best pastr locations
+		   double[] tempCows = new double[numPastrs]; // for copying purposes
+		   MapLocation[] tempPastrs = new MapLocation[numPastrs]; // for copying purposes
+		  
+		   int hqX = rc.senseHQLocation().x;
+		   int hqY = rc.senseHQLocation().y;
+		   
+		   // iterating over locations in a square of 'radius' distanceDesired centered at hq location
+		   for (int x = -1*distanceDesired + hqX; x <= distanceDesired + hqX; x++){
+			   for (int y = -1*distanceDesired + hqY; y <= distanceDesired + hqY; y++){
+				   // checking that is a valid location
+				   //TODO: check that can read a location when try to path to it?
+				   if (x > 0 && y > 0 && x < cowGrowthArray.length && y < cowGrowthArray[0].length){
+					   // current location is better than all current locations
+					   for (int i = 0; i < bestCows.length; i++){
+						   if (cowGrowthArray[x][y] > bestCows[i]){ 
+							   //copying over 'bestCows' to tempCows with new value in place
+							   System.arraycopy(bestCows, 0, tempCows, 0, i-1);
+							   tempCows[i] = cowGrowthArray[x][y];
+							   System.arraycopy(bestCows, 0, tempCows, i+1, numPastrs);
+							   bestCows = tempCows;
+							   
+							   //adjusting 
+						   }						   
+					   }
+
+				   }
+			   }
+		   }
+		   
+		   return bestPastrs;
+=======
+		rc.broadcast(makeNoisetowerLocChan[currentMakeCount + 1], VectorFunctions.locToInt(noisetowerLoc));
 		rc.broadcast(makeNoisetowerChan, currentMakeCount + 1);
-		
-		noisetowersOrderedThisTurn++;
 	}
 	
 	private static void senseNearbyCows(RobotController rc) throws GameActionException{
 		for(MapLocation nearby:MapLocation.getAllMapLocationsWithinRadiusSq(rc.getLocation(), 35)){
 			int cows = (int)rc.senseCowsAtLocation(nearby);
-			if (cows > rc.readBroadcast(cowChannel) && nearby.distanceSquaredTo(VectorFunctions.intToLoc(rc.readBroadcast(towerLocChan))) <= 361){
-				boolean farPasture = true;
-				for(MapLocation allyPasture:rc.sensePastrLocations(rc.getTeam())){
-					if (nearby.distanceSquaredTo(allyPasture) < GameConstants.PASTR_RANGE)
-						farPasture = false;
-				}
-				for(MapLocation enemyPasture:rc.sensePastrLocations(rc.getTeam().opponent())){
-					if (nearby.distanceSquaredTo(enemyPasture) < GameConstants.PASTR_RANGE)
-						farPasture = false;
-				}
-				if (farPasture){
-					rc.broadcast(cowChannel, cows);
-					rc.broadcast(cowLocChannel, VectorFunctions.locToInt(nearby));
-				}
+			if (cows > rc.readBroadcast(cowChannel)){
+				rc.broadcast(cowChannel, cows);
+				rc.broadcast(cowLocChannel, nearby.x * 100 + nearby.y);
 				//TODO vector function that shit
 			}
+>>>>>>> asyastoolazytomerge
 		}
 		rc.setIndicatorString(0, ""+rc.readBroadcast(cowLocChannel));
 	}
 	
 	private static ArrayList<MapLocation> getTowerPath(RobotController rc) throws GameActionException{
 		MapLocation[] allyPastrLocs = rc.sensePastrLocations(rc.getTeam());
-		MapLocation bestTarget = VectorFunctions.intToLoc(rc.readBroadcast(4001));
-		rc.broadcast(cowChannel, 0); //reset cow channel for next sensing
-		rc.broadcast(towerGetPathChan, 1); //set channel for having found a path
-		MapLocation bestAllyPastr = allyPastrLocs[0];
-		int bestDistance = bestAllyPastr.distanceSquaredTo(bestTarget);
-		for(int i = 1; i < allyPastrLocs.length; i++){
-			if(allyPastrLocs[i].distanceSquaredTo(bestTarget) < bestDistance){
-				bestAllyPastr = allyPastrLocs[i];
-				bestDistance = allyPastrLocs[i].distanceSquaredTo(bestTarget);
-			}
-		}
-		rc.broadcast(bestPastrChan, VectorFunctions.locToInt(bestAllyPastr));
-		rc.setIndicatorString(1, bestAllyPastr + " " + bestTarget);
-		return BugMove.mergePath(BugMove.generateBugPath(bestAllyPastr, bestTarget, rc, VectorFunctions.intToLoc(rc.readBroadcast(towerLocChan)), 361));
+		MapLocation bestTarget = new MapLocation(rc.readBroadcast(cowLocChannel)/100,rc.readBroadcast(cowLocChannel)%100);
+		rc.setIndicatorString(9, ""+bestTarget);
+		rc.broadcast(towerGetPathChan, 1);
+		return BugMove.mergePath(BugMove.generateBugPath(allyPastrLocs[0], bestTarget, rc));
 		//for(int i = 0; i < 10; i++){
 		//	path = BugMove.simplefyPath(path);
 		//}

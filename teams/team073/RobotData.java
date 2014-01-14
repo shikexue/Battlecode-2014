@@ -1,10 +1,11 @@
-package herdingPlayer;
+package team073;
+
 
 //TODO: beware of import dependencies
 import java.util.ArrayList;
 
 import battlecode.common.MapLocation;
-import herdingPlayer.Constants;
+import team073.Constants;
 
 public class RobotData{
 	Constants.Task task;

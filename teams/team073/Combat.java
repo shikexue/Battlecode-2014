@@ -1,4 +1,4 @@
-package herdingPlayer;
+package team073;
 
 import battlecode.common.GameActionException;
 import battlecode.common.GameConstants;
