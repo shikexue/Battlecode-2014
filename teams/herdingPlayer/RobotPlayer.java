@@ -33,7 +33,9 @@ boolean taskSet = false;
 	static int cowLocChannel = 4001;
 	static int towerGetPathChan = 4002; //TODO: make this an array so we can have 1+ tower?
 	static int towerLocChan = 4003; //TODO: same as above, allow for 1+ tower
+	static int towerShootLocChan = 4004;
 	static int bestPastrChan = 4005;
+	
 	
 	//next used channel should start with 11
 	
@@ -108,7 +110,7 @@ boolean taskSet = false;
 	 */
 	private static void runTower(ArrayList<MapLocation >path) throws GameActionException{
 		if(rc.isActive()){
-			BugMove.shootPath(path, towerGetPathChan, bestPastrChan);
+			BugMove.shootPath(path, towerGetPathChan, bestPastrChan, towerShootLocChan);
 		}
 	}
 	
