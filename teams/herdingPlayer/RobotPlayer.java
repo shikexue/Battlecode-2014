@@ -38,6 +38,7 @@ public class RobotPlayer {
 	static int rallyLocChan = 5001;
 	static int rallySwarmSizeChan = 5002;
 	static int rallySwarmMove = 5003;
+	static int swarmNum = 5004;
 	//next used channel should start with 11
 	
 	/*
@@ -206,6 +207,7 @@ public class RobotPlayer {
 					rc.broadcast(rallySwarmSizeChan, rc.readBroadcast(rallySwarmSizeChan) + 1);
 					if(rc.readBroadcast(rallySwarmSizeChan) >= 3){
 						rc.broadcast(rallySwarmMove, 1);
+						rc.broadcast(swarmNum, rc.readBroadcast(swarmNum) + 1);
 					} if(rc.readBroadcast(rallySwarmMove) == 1){
 						MapLocation[] enemyPastrs = rc.sensePastrLocations(rc.getTeam().opponent());
 						goal = enemyPastrs[0];
@@ -229,7 +231,7 @@ public class RobotPlayer {
 					default:
 						for(Robot enemy:nearbyEnemies){
 							RobotInfo robotInfo = rc.senseRobotInfo(enemy);
-							if(rc.canAttackSquare(robotInfo.location)){
+							if(rc.isActive() && rc.canAttackSquare(robotInfo.location)){
 								rc.attackSquare(robotInfo.location);
 							}
 						}
@@ -237,7 +239,7 @@ public class RobotPlayer {
 					case ATTACKING:
 						for(Robot enemy:nearbyEnemies){
 							RobotInfo robotInfo = rc.senseRobotInfo(enemy);
-							if(rc.canAttackSquare(robotInfo.location)){
+							if(rc.isActive() && rc.canAttackSquare(robotInfo.location)){
 								rc.attackSquare(robotInfo.location);
 							}
 						}
