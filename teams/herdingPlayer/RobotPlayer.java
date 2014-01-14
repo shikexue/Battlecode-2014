@@ -10,8 +10,6 @@ import herdingPlayer.Constants;
 import herdingPlayer.RobotData;
 
 public class RobotPlayer {
-
-
 	static RobotController rc;
 	static Random randall = new Random();
 	static Direction allDirections[] = Direction.values();
@@ -19,7 +17,7 @@ public class RobotPlayer {
 	static MapLocation pastrLoc;
 	static int noisetowerCount;
 	
-boolean taskSet = false;
+	boolean taskSet = false;
 	
 	static int pastrsOrderedThisTurn = 0; //TODO: THIS MUST BE RESET AT THE BEGINNING OF EVERY TURN
 	
@@ -40,7 +38,11 @@ boolean taskSet = false;
 	static int towerShootLocChan = 4004;
 	static int bestPastrChan = 4005;
 	
-	
+	static int foundRallyChan = 5000;
+	static int rallyLocChan = 5001;
+	static int rallySwarmSizeChan = 5002;
+	static int rallySwarmMove = 5003;
+	static int rallySwarmHasMoved = 5004;
 	//next used channel should start with 11
 	
 	/*
@@ -50,13 +52,17 @@ boolean taskSet = false;
 		try{
 			rc = rcIn;
 			Constants.Task task = Constants.Task.ATTACKING; // default task
-			MapLocation goal = rc.senseEnemyHQLocation(); // default goal
-
+			//If the rally point has yet to be set, set it to the default of a third of the way to
+			//the enemy HQ.
+			if(rc.readBroadcast(foundRallyChan) == 0){
+				ArrayList<MapLocation> pathToEnemyHQ = BugMove.generateBugPath(rc.senseEnemyHQLocation(), rc.getLocation(), rc);
+				rc.broadcast(rallyLocChan, VectorFunctions.locToInt(pathToEnemyHQ.get(pathToEnemyHQ.size()/3)));
+				rc.broadcast(foundRallyChan, 1);
+			}
+			MapLocation goal = VectorFunctions.intToLoc(rc.readBroadcast(rallyLocChan)); // default goal
 			ArrayList<MapLocation> path = BugMove.generateBugPath(goal, rc.getLocation(), rc, goal, 100000);
 			boolean taskSet = false;
-
 			RobotData myData = new RobotData(task, goal, path, taskSet);
-
 
 			// initialize channels and then make first noisetower and pastr
 			if (rc.getType()==RobotType.HQ){
@@ -89,7 +95,7 @@ boolean taskSet = false;
 					//TODO: work with path
 					if((path == null || rc.readBroadcast(towerGetPathChan) == 0) && rc.sensePastrLocations(rc.getTeam()).length > 0){
 						rc.setIndicatorString(0, "pathing");
-						myData.path = getTowerPath(rc);						
+						myData.path = getTowerPath(rc);
 					} else {
 						rc.setIndicatorString(0, "no new path");
 					}
@@ -110,7 +116,7 @@ boolean taskSet = false;
 	{
 		rc.setIndicatorString(0, "" + rc.readBroadcast(makeNoisetowerChan));
 		rc.setIndicatorString(1, "" + rc.readBroadcast(makePastrChan));
-		
+		rc.broadcast(rallySwarmSizeChan, 0); //
 		tryToSpawn();
 		
 	}
@@ -190,7 +196,7 @@ boolean taskSet = false;
 		//if robot is active, move or perform task
 		if (rc.isActive()){
 			//if have reached goal, perform designated task
-			if (rc.getLocation().equals(goal)){
+			if (nearEnoughToGoal(task, goal)){
 				//rc.setIndicatorString(1, "completing Task");
 				switch (task){
 				case PASTRMAKING:
@@ -210,10 +216,19 @@ boolean taskSet = false;
 					//taskSet = false;
 					break;
 				case ATTACKING:
-					Robot[] nearbyEnemies = rc.senseNearbyGameObjects(Robot.class,10,rc.getTeam().opponent());
-					if (nearbyEnemies.length > 0) {
-						RobotInfo robotInfo = rc.senseRobotInfo(nearbyEnemies[0]);
-						rc.attackSquare(robotInfo.location);
+					rc.broadcast(rallySwarmSizeChan, rc.readBroadcast(rallySwarmSizeChan) + 1);
+					if(rc.readBroadcast(rallySwarmSizeChan) >= 3){
+						rc.broadcast(rallySwarmMove, 1);
+					} if(rc.readBroadcast(rallySwarmMove) == 1){
+						MapLocation[] enemyPastrs = rc.sensePastrLocations(rc.getTeam().opponent());
+						goal = enemyPastrs[0];
+						path = BugMove.generateBugPath(goal, rc.getLocation(), rc);
+						rc.broadcast(rallySwarmHasMoved, rc.readBroadcast(rallySwarmHasMoved) + 1);
+						if(rc.readBroadcast(rallySwarmHasMoved) >= 3){
+							rc.broadcast(rallySwarmMove, 0);
+							rc.broadcast(rallySwarmSizeChan, 0);
+							rc.broadcast(rallySwarmHasMoved, 0);
+						}
 					}
 					break;
 				default:
@@ -224,13 +239,46 @@ boolean taskSet = false;
 			// TODO: allow interruptions
 			else{
 				rc.setIndicatorString(1, "followingPath");
+				Robot[] nearbyEnemies = rc.senseNearbyGameObjects(Robot.class,35,rc.getTeam().opponent());
+				if (nearbyEnemies.length > 0) {
+					switch(task){
+					case PASTRMAKING:
+					case TOWERMAKING:
+					default:
+						for(Robot enemy:nearbyEnemies){
+							RobotInfo robotInfo = rc.senseRobotInfo(enemy);
+							if(rc.isActive() && rc.canAttackSquare(robotInfo.location)){
+								rc.attackSquare(robotInfo.location);
+							}
+						}
+						break;
+					case ATTACKING:
+						for(Robot enemy:nearbyEnemies){
+							RobotInfo robotInfo = rc.senseRobotInfo(enemy);
+							if(rc.isActive() && rc.canAttackSquare(robotInfo.location)){
+								rc.attackSquare(robotInfo.location);
+							}
+						}
+					}
+				}
 				BugMove.followPath(path);
 			}
 		}
 
 		return new RobotData(task, goal, path, taskSet);
 	}
-
+	
+	private static boolean nearEnoughToGoal(Constants.Task task, MapLocation goal){
+		switch(task){
+		case PASTRMAKING:
+		case TOWERMAKING:
+			return rc.getLocation().equals(goal);
+		case ATTACKING:
+			return rc.getLocation().distanceSquaredTo(goal) < 9;
+		default:
+			return rc.getLocation().equals(goal);
+		}
+	}
 
 	/*
 	 * HQ sends out broadcast that a PASTR should be made
