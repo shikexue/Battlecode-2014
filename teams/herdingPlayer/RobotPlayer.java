@@ -215,6 +215,7 @@ public class RobotPlayer {
 						if(rc.readBroadcast(rallySwarmHasMoved) >= 3){
 							rc.broadcast(rallySwarmMove, 0);
 							rc.broadcast(rallySwarmSizeChan, 0);
+							rc.broadcast(rallySwarmHasMoved, 0);
 						}
 					}
 					break;
