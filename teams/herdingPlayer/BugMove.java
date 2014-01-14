@@ -263,10 +263,15 @@ public class BugMove {
 	}
 
 	//shoots to move cows along path
-	public static void shootPath(ArrayList<MapLocation> pathToFollow, int towerGetPathChan) throws GameActionException{
-		if(placeOnPath < pathToFollow.size()-1){
-			rc.attackSquareLight(pathToFollow.get(placeOnPath).add(pathToFollow.get(placeOnPath + 1).directionTo(pathToFollow.get(placeOnPath))));
-			rc.setIndicatorString(2, "" + pathToFollow.get(placeOnPath));
+	public static void shootPath(ArrayList<MapLocation> pathToFollow, int towerGetPathChan, int bestPastrChan) throws GameActionException{
+		if(placeOnPath < pathToFollow.size()-1 && VectorFunctions.locToInt(pathToFollow.get(placeOnPath)) != rc.readBroadcast(bestPastrChan)){
+			MapLocation toShoot = pathToFollow.get(placeOnPath).add(pathToFollow.get(placeOnPath + 1).directionTo(pathToFollow.get(placeOnPath)));
+			if(rc.getLocation().distanceSquaredTo(toShoot) <= rc.getType().attackRadiusMaxSquared){
+				rc.attackSquareLight(toShoot);
+			} else {
+				rc.broadcast(towerGetPathChan, 0); //TODO: broadcasting here
+			}
+			//rc.setIndicatorString(2, "" + pathToFollow.get(placeOnPath));
 			placeOnPath++;
 		} else {
 			rc.broadcast(towerGetPathChan, 0); //TODO: broadcasting here
