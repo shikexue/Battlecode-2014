@@ -1,16 +1,12 @@
 package herdingPlayer;
 
+import java.net.Proxy.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Random;
 
-import battlecode.common.Clock;
-import battlecode.common.Direction;
-import battlecode.common.GameActionException;
-import battlecode.common.MapLocation;
-import battlecode.common.RobotController;
-import battlecode.common.TerrainTile;
+import battlecode.common.*;
 
 public class BugMove {
 	public static RobotController rc;
@@ -18,6 +14,8 @@ public class BugMove {
 	static Random randall = new Random();
 	static int enterBugging[] = new int[]{0,-2,-1,-3,-4, 3, 2, 1, 0,};
 	static int whileBugging[] = new int[]{2,1,0,-1,-2,-3,-4};
+	static int noiseEnter[] = new int[]{0,-2,-4, 2, 0};
+	static int noiseBugging[] = new int[]{2, 0, -2, -4};
 	static int tryForward[] = new int[]{0,1,-1,2,-2};
 	static int tryRestrainedForward[] = new int[]{0};
 	static int placeOnPath;
@@ -37,7 +35,7 @@ public class BugMove {
 		pastPos.add(start);
 		STATE state = STATE.CLEAR;
 		MapLocation startBugLoc = null;
-		while(!pos.equals(destination)&&pastPos.size() < 100){
+		while(!pos.equals(destination)&&pastPos.size() < 150){
 			//rc.setIndicatorString(0, ""+path);
 			//rc.setIndicatorString(2, ""+state);
 			Direction desiredDir = pos.directionTo(destination);
@@ -49,7 +47,7 @@ public class BugMove {
 			}
 			switch(state){
 			case CLEAR:
-				Direction newDir = simplePath(pos, desiredDir, centerOfRange, rangeSquared);	
+				Direction newDir = simpleNoisePath(pos, desiredDir, centerOfRange, rangeSquared);	
 				if(newDir != null){
 					dir = newDir;
 					pos = pos.add(newDir);
@@ -58,10 +56,13 @@ public class BugMove {
 				} else {
 					state = STATE.BUGGING;
 					startBugLoc = pos;
-					newDir = bug(pos, dir, enterBugging, centerOfRange, rangeSquared);
+					newDir = bugNoise(pos, dir, noiseEnter, centerOfRange, rangeSquared);
 					//rc.setIndicatorString(2, ""+newDir);
 					dir = newDir;
 					pos = pos.add(newDir);
+					/*if(canPathThrough(pos.add(allDirections[newDir.ordinal()+10%8]))){
+						pastPos.add(pos.add(allDirections[newDir.ordinal()+10%8]));
+					}*/
 					pastPos.add(pos);
 					//rc.setIndicatorString(0, ""+pastPos.subList(Math.max(0, pastPos.size()-30), pastPos.size()));
 					//rc.setIndicatorString(1, ""+state);
@@ -70,11 +71,14 @@ public class BugMove {
 				}
 			case BUGGING:
 				//int before = Clock.getBytecodeNum();
-				Direction moveDir = bug(pos, dir, whileBugging, centerOfRange, rangeSquared);
+				Direction moveDir = bugNoise(pos, dir, noiseBugging, centerOfRange, rangeSquared);
 				//rc.setIndicatorString(2, ""+(Clock.getBytecodeNum()-before));
 				//rc.setIndicatorString(2, "In bugging: "+moveDir);
 				dir = moveDir;
 				pos = pos.add(moveDir);
+				/*if(canPathThrough(pos.add(allDirections[moveDir.ordinal()+10%8]))){
+					pastPos.add(pos.add(allDirections[moveDir.ordinal()+10%8]));
+				}*/
 				pastPos.add(pos);
 			}
 			//rc.setIndicatorString(0, ""+pastPos.subList(Math.max(0, pastPos.size()-30), pastPos.size()));
@@ -84,6 +88,7 @@ public class BugMove {
 		}
 		//add goal to end
 		pastPos.add(destination);
+		pastPos = simplefyNoisePath(pastPos, centerOfRange, rangeSquared);
 		return pastPos;
 	}
 	public static ArrayList<MapLocation> generateBugPath(MapLocation destination, MapLocation start, RobotController rcin){
@@ -147,7 +152,7 @@ public class BugMove {
 		return pastPos;
 	}
 	//When moving around an obstacle, runs this
-	private static Direction bug(MapLocation pos, Direction dir, int[] directionalLooks, MapLocation centerOfRange, int rangeSquared) {
+	private static Direction bugNoise(MapLocation pos, Direction dir, int[] directionalLooks, MapLocation centerOfRange, int rangeSquared) {
 		//Try different directions, in order
 		int forwardInt = dir.ordinal();
 		for(int directionalOffset:directionalLooks){
@@ -195,7 +200,7 @@ public class BugMove {
 	}	
 
 	//Attempts to path (not move) in a straight line toward the target
-	private static Direction simplePath(MapLocation pos, Direction desiredDir, MapLocation centerOfRange, int rangeSquared) {
+	private static Direction simpleNoisePath(MapLocation pos, Direction desiredDir, MapLocation centerOfRange, int rangeSquared) {
 		//rc.setIndicatorString(2, "simplePathing");
 		int forwardInt = desiredDir.ordinal();
 		//rc.setIndicatorString(2, "simple pathing. Desired Dir is " + desiredDir);
@@ -221,7 +226,22 @@ public class BugMove {
 	}
 
 	//This does mutate original path
-	public static ArrayList<MapLocation> simplefyPath(ArrayList<MapLocation> originalPath, MapLocation centerOfRange, int rangeSquared){
+	public static ArrayList<MapLocation> simplefyPath(ArrayList<MapLocation> originalPath){
+		for(int i = 0; i < originalPath.size()-3; i++){ 
+			Direction newDir = originalPath.get(i+1).directionTo(originalPath.get(i+2));
+			if(canPathThrough(originalPath.get(i).add(newDir))){
+				originalPath.set(i+1, originalPath.get(i).add(newDir));
+			}
+			if(i+3 < originalPath.size()-1){
+				if(originalPath.get(i+1).equals(originalPath.get(i+3))||originalPath.get(i+1).isAdjacentTo(originalPath.get(i+3))){
+					originalPath.remove(i+2);
+				}
+			}
+		}
+		return originalPath;
+	}
+	
+	public static ArrayList<MapLocation> simplefyNoisePath(ArrayList<MapLocation> originalPath, MapLocation centerOfRange, int rangeSquared){
 		for(int i = 0; i < originalPath.size()-3; i++){ 
 			Direction newDir = originalPath.get(i+1).directionTo(originalPath.get(i+2));
 			if(canPathThrough(originalPath.get(i).add(newDir), centerOfRange, rangeSquared)){
@@ -233,6 +253,7 @@ public class BugMove {
 				}
 			}
 		}
+		originalPath = mergePath(originalPath);
 		return originalPath;
 	}
 
@@ -256,6 +277,13 @@ public class BugMove {
 	public static void followPath(ArrayList<MapLocation> pathToFollow) throws GameActionException{
 		if(placeOnPath < pathToFollow.size()-1){
 			simpleMoveTo(pathToFollow.get(placeOnPath));
+			GameObject obstacle = (rc.senseObjectAtLocation(pathToFollow.get(placeOnPath)));
+			if(obstacle != null){
+				RobotInfo ri = rc.senseRobotInfo((Robot) obstacle);
+				if(ri.type==RobotType.NOISETOWER||ri.type==RobotType.PASTR){
+					placeOnPath++;
+				}
+			}
 			if(rc.getLocation().equals(pathToFollow.get(placeOnPath))){
 				placeOnPath++;
 			}
