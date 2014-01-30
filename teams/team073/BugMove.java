@@ -334,17 +334,17 @@ public class BugMove {
 	}
 
 
-		public static boolean closeEnoughForTask(Constants.Task task, MapLocation destination, MapLocation currentPos){
-			HashMap<Constants.Task, Integer> taskLeeway = new HashMap<Constants.Task, Integer>();
-			taskLeeway.put(Constants.Task.HERDING, 0);
-			taskLeeway.put(Constants.Task.ATTACKING, 10); 
-			taskLeeway.put(Constants.Task.DEFENDING, 1);
-			taskLeeway.put(Constants.Task.PASTRMAKING, 0);
-			taskLeeway.put(Constants.Task.TOWERMAKING,0);
-			if(taskLeeway.get(task) <= destination.distanceSquaredTo(currentPos)){
-				return true;
-			}
-			return false;
-		}
+//		public static boolean closeEnoughForTask(Constants.Task task, MapLocation destination, MapLocation currentPos){
+//			HashMap<Constants.Task, Integer> taskLeeway = new HashMap<Constants.Task, Integer>();
+//			taskLeeway.put(Constants.Task.HERDING, 0);
+//			taskLeeway.put(Constants.Task.ATTACKING, 10); 
+//			taskLeeway.put(Constants.Task.DEFENDING, 1);
+//			taskLeeway.put(Constants.Task.PASTRMAKING, 0);
+//			taskLeeway.put(Constants.Task.TOWERMAKING,0);
+//			if(taskLeeway.get(task) <= destination.distanceSquaredTo(currentPos)){
+//				return true;
+//			}
+//			return false;
+//		}
 
 	}
